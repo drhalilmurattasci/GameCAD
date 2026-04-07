@@ -136,6 +136,23 @@ mod tests {
         let mat = PbrMaterial::default();
         assert_eq!(mat.name, "Untitled Material");
         assert!(!mat.double_sided);
+        match &mat.albedo {
+            ColorOrTexture::Color(c) => {
+                assert!((c.r - 0.5).abs() < 1e-5);
+            }
+            _ => panic!("Default albedo should be a Color"),
+        }
+        match mat.metallic {
+            FloatOrTexture::Value(v) => assert!((v - 0.0).abs() < 1e-5),
+            _ => panic!("Default metallic should be Value"),
+        }
+        match mat.roughness {
+            FloatOrTexture::Value(v) => assert!((v - 0.5).abs() < 1e-5),
+            _ => panic!("Default roughness should be Value"),
+        }
+        assert!(mat.normal_map.is_none());
+        assert!(mat.ao_map.is_none());
+        assert!(matches!(mat.alpha_mode, AlphaMode::Opaque));
     }
 
     #[test]
@@ -157,6 +174,74 @@ mod tests {
             FloatOrTexture::Value(v) => assert!((v - 0.8).abs() < 1e-5),
             _ => panic!("Expected Value"),
         }
+        match back.roughness {
+            FloatOrTexture::Value(v) => assert!((v - 0.2).abs() < 1e-5),
+            _ => panic!("Expected Value"),
+        }
+        match &back.albedo {
+            ColorOrTexture::Color(c) => {
+                assert!((c.r - 1.0).abs() < 1e-5);
+                assert!((c.g - 0.0).abs() < 1e-5);
+            }
+            _ => panic!("Expected Color"),
+        }
+        match back.alpha_mode {
+            AlphaMode::Mask(cutoff) => assert!((cutoff - 0.5).abs() < 1e-5),
+            _ => panic!("Expected Mask"),
+        }
+    }
+
+    #[test]
+    fn toml_roundtrip_all_fields() {
+        let mat = PbrMaterial {
+            name: "Full PBR".into(),
+            albedo: ColorOrTexture::Color(Color::new(0.1, 0.2, 0.3, 0.9)),
+            metallic: FloatOrTexture::Value(0.7),
+            roughness: FloatOrTexture::Value(0.35),
+            alpha_mode: AlphaMode::Blend,
+            double_sided: true,
+            emissive: EmissiveConfig {
+                color: Color::new(1.0, 0.5, 0.0, 1.0),
+                strength: 2.5,
+            },
+            normal_map: None,
+            ao_map: None,
+            ..PbrMaterial::default()
+        };
+
+        let toml_str = toml::to_string_pretty(&mat).unwrap();
+        let back: PbrMaterial = toml::from_str(&toml_str).unwrap();
+
+        assert_eq!(back.name, "Full PBR");
+        assert_eq!(back.id, mat.id);
+        assert!(back.double_sided);
+        assert!(matches!(back.alpha_mode, AlphaMode::Blend));
+        assert!((back.emissive.strength - 2.5).abs() < 1e-5);
+        assert!((back.emissive.color.r - 1.0).abs() < 1e-5);
+        assert!((back.emissive.color.g - 0.5).abs() < 1e-5);
+    }
+
+    #[test]
+    fn toml_roundtrip_texture_refs() {
+        let tex_id = AssetId::new();
+        let mat = PbrMaterial {
+            name: "Textured".into(),
+            albedo: ColorOrTexture::Texture(tex_id),
+            metallic: FloatOrTexture::Texture(tex_id),
+            roughness: FloatOrTexture::Texture(tex_id),
+            normal_map: Some(tex_id),
+            ao_map: Some(tex_id),
+            ..PbrMaterial::default()
+        };
+
+        let toml_str = toml::to_string_pretty(&mat).unwrap();
+        let back: PbrMaterial = toml::from_str(&toml_str).unwrap();
+
+        assert!(matches!(back.albedo, ColorOrTexture::Texture(_)));
+        assert!(matches!(back.metallic, FloatOrTexture::Texture(_)));
+        assert!(matches!(back.roughness, FloatOrTexture::Texture(_)));
+        assert!(back.normal_map.is_some());
+        assert!(back.ao_map.is_some());
     }
 
     #[test]
@@ -165,12 +250,49 @@ mod tests {
         let _ = std::fs::create_dir_all(&dir);
         let path = dir.join("test.material.toml");
 
-        let mat = PbrMaterial::default();
+        let mat = PbrMaterial {
+            name: "Disk Test".into(),
+            double_sided: true,
+            metallic: FloatOrTexture::Value(0.9),
+            roughness: FloatOrTexture::Value(0.1),
+            alpha_mode: AlphaMode::Mask(0.3),
+            emissive: EmissiveConfig {
+                color: Color::new(0.0, 1.0, 0.0, 1.0),
+                strength: 1.5,
+            },
+            ..PbrMaterial::default()
+        };
         save_material(&mat, &path).unwrap();
         let loaded = load_material(&path).unwrap();
-        assert_eq!(loaded.name, mat.name);
+        assert_eq!(loaded.name, "Disk Test");
         assert_eq!(loaded.id, mat.id);
+        assert!(loaded.double_sided);
+        match loaded.metallic {
+            FloatOrTexture::Value(v) => assert!((v - 0.9).abs() < 1e-5),
+            _ => panic!("Expected Value"),
+        }
+        match loaded.roughness {
+            FloatOrTexture::Value(v) => assert!((v - 0.1).abs() < 1e-5),
+            _ => panic!("Expected Value"),
+        }
+        match loaded.alpha_mode {
+            AlphaMode::Mask(c) => assert!((c - 0.3).abs() < 1e-5),
+            _ => panic!("Expected Mask"),
+        }
+        assert!((loaded.emissive.strength - 1.5).abs() < 1e-5);
 
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn load_nonexistent_file_fails() {
+        let result = load_material(std::path::Path::new("/nonexistent/path/mat.toml"));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn emissive_default() {
+        let e = EmissiveConfig::default();
+        assert!((e.strength - 0.0).abs() < 1e-5);
     }
 }

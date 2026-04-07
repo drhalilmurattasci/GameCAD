@@ -23,6 +23,7 @@ pub mod toolbar;
 /// Convenience re-exports.
 pub mod prelude {
     pub use crate::agent_progress::{AgentTask, TaskStatus, show_task_list};
+    pub use crate::toolbar::draw_separator;
     pub use crate::command_palette::{CommandPalette, PaletteCommand};
     pub use crate::panels::{EditorPanel, PanelId, PanelManager};
     pub use crate::shortcuts::{Shortcut, ShortcutMap};

@@ -18,6 +18,7 @@ pub struct Layer {
 
 impl Layer {
     /// Creates a new visible, unlocked layer.
+    #[inline]
     pub fn new(name: impl Into<String>, color: Color) -> Self {
         Self {
             name: name.into(),
@@ -36,6 +37,7 @@ pub struct LayerManager {
 
 impl LayerManager {
     /// Creates a new manager with a single "Default" layer.
+    #[inline]
     pub fn new() -> Self {
         Self {
             layers: vec![Layer::new("Default", Color::WHITE)],
@@ -78,21 +80,25 @@ impl LayerManager {
     }
 
     /// Returns a reference to the layer with the given name.
+    #[inline]
     pub fn get(&self, name: &str) -> Option<&Layer> {
         self.layers.iter().find(|l| l.name == name)
     }
 
     /// Returns a mutable reference to the layer with the given name.
+    #[inline]
     pub fn get_mut(&mut self, name: &str) -> Option<&mut Layer> {
         self.layers.iter_mut().find(|l| l.name == name)
     }
 
     /// Returns all layers.
+    #[inline]
     pub fn all(&self) -> &[Layer] {
         &self.layers
     }
 
     /// Returns the number of layers.
+    #[inline]
     pub fn count(&self) -> usize {
         self.layers.len()
     }
@@ -158,5 +164,73 @@ mod tests {
         assert!(!mgr.get("Default").unwrap().locked);
         mgr.toggle_locked("Default");
         assert!(mgr.get("Default").unwrap().locked);
+    }
+
+    #[test]
+    fn toggle_visibility_nonexistent_is_noop() {
+        let mut mgr = LayerManager::new();
+        mgr.toggle_visibility("DoesNotExist");
+        // Default layer should remain unchanged.
+        assert!(mgr.get("Default").unwrap().visible);
+    }
+
+    #[test]
+    fn toggle_locked_nonexistent_is_noop() {
+        let mut mgr = LayerManager::new();
+        mgr.toggle_locked("DoesNotExist");
+        assert!(!mgr.get("Default").unwrap().locked);
+    }
+
+    #[test]
+    fn remove_nonexistent_returns_false() {
+        let mut mgr = LayerManager::new();
+        assert!(!mgr.remove("Ghost"));
+    }
+
+    #[test]
+    fn get_nonexistent_returns_none() {
+        let mgr = LayerManager::new();
+        assert!(mgr.get("Nope").is_none());
+    }
+
+    #[test]
+    fn get_mut_works() {
+        let mut mgr = LayerManager::new();
+        mgr.add(Layer::new("Custom", Color::BLACK));
+        let layer = mgr.get_mut("Custom").unwrap();
+        layer.color = Color::WHITE;
+        assert_eq!(mgr.get("Custom").unwrap().color, Color::WHITE);
+    }
+
+    #[test]
+    fn all_returns_all_layers() {
+        let mut mgr = LayerManager::new();
+        mgr.add(Layer::new("A", Color::BLACK));
+        mgr.add(Layer::new("B", Color::BLACK));
+        assert_eq!(mgr.all().len(), 3);
+    }
+
+    #[test]
+    fn default_layer_is_visible_and_unlocked() {
+        let mgr = LayerManager::new();
+        let def = mgr.get("Default").unwrap();
+        assert!(def.visible);
+        assert!(!def.locked);
+        assert_eq!(def.color, Color::WHITE);
+    }
+
+    #[test]
+    fn double_toggle_restores_locked() {
+        let mut mgr = LayerManager::new();
+        mgr.toggle_locked("Default");
+        mgr.toggle_locked("Default");
+        assert!(!mgr.get("Default").unwrap().locked);
+    }
+
+    #[test]
+    fn default_impl_matches_new() {
+        let a = LayerManager::new();
+        let b = LayerManager::default();
+        assert_eq!(a.count(), b.count());
     }
 }

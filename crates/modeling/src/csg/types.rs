@@ -37,6 +37,7 @@ impl CsgPlane {
     }
 
     /// Classify a point as in front of, behind, or on this plane.
+    #[inline]
     pub fn classify_point(&self, point: Vec3) -> Classification {
         let d = self.normal.dot(point) - self.w;
         if d > EPSILON {

@@ -134,16 +134,19 @@ impl ThemeManager {
     }
 
     /// Returns the active theme mode.
+    #[inline]
     pub fn current_mode(&self) -> ThemeMode {
         self.mode
     }
 
     /// Returns `true` if the current mode is [`ThemeMode::Dark`].
+    #[inline]
     pub fn is_dark(&self) -> bool {
         self.mode == ThemeMode::Dark
     }
 
     /// Returns the color palette for the current mode.
+    #[inline]
     pub fn current_theme(&self) -> &ThemeColors {
         match self.mode {
             ThemeMode::Dark => &self.dark,
@@ -152,6 +155,7 @@ impl ThemeManager {
     }
 
     /// Returns the 8-band viewport background gradient for the current mode.
+    #[inline]
     pub fn viewport_gradient(&self) -> &ViewportGradient {
         match self.mode {
             ThemeMode::Dark => &DARK_GRADIENT,
@@ -160,6 +164,7 @@ impl ThemeManager {
     }
 
     /// Grid line color adapts to background.
+    #[inline]
     pub fn grid_color(&self) -> Color32 {
         if self.is_dark() {
             Color32::from_rgba_premultiplied(255, 255, 255, 15)
@@ -169,6 +174,7 @@ impl ThemeManager {
     }
 
     /// Major grid line color.
+    #[inline]
     pub fn grid_major_color(&self) -> Color32 {
         if self.is_dark() {
             Color32::from_rgba_premultiplied(255, 255, 255, 30)
@@ -178,6 +184,7 @@ impl ThemeManager {
     }
 
     /// Wireframe color for 3D objects.
+    #[inline]
     pub fn wireframe_color(&self) -> Color32 {
         if self.is_dark() {
             hex(0x4eff93)
@@ -344,10 +351,12 @@ impl Default for ThemeManager {
 // ─────────────────────────────────────────────────────────────────────
 
 /// Convert a 24-bit hex value (0xRRGGBB) to [`Color32`].
+#[inline]
 pub fn hex_to_color32(hex_val: u32) -> Color32 {
     hex(hex_val)
 }
 
+#[inline]
 fn hex(v: u32) -> Color32 {
     let r = ((v >> 16) & 0xFF) as u8;
     let g = ((v >> 8) & 0xFF) as u8;
@@ -439,5 +448,98 @@ mod tests {
         // Now Dark
         let dark_wire = tm.wireframe_color();
         assert_ne!(dark_wire, light_wire);
+    }
+
+    #[test]
+    fn select_theme_by_name() {
+        let mut tm = ThemeManager::new();
+        assert!(tm.select_theme("Dark"));
+        assert_eq!(tm.current_mode(), ThemeMode::Dark);
+        assert!(tm.select_theme("Light"));
+        assert_eq!(tm.current_mode(), ThemeMode::Light);
+        assert!(!tm.select_theme("NonExistent"));
+    }
+
+    #[test]
+    fn set_mode_explicit() {
+        let mut tm = ThemeManager::new();
+        tm.set_mode(ThemeMode::Dark);
+        assert!(tm.is_dark());
+        tm.set_mode(ThemeMode::Light);
+        assert!(!tm.is_dark());
+    }
+
+    #[test]
+    fn custom_theme_listed() {
+        let mut tm = ThemeManager::new();
+        tm.add_custom_theme("Solarized".to_string(), ThemeColors::dark_default());
+        let list = tm.list_themes();
+        assert_eq!(list, vec!["Dark", "Light", "Solarized"]);
+    }
+
+    #[test]
+    fn grid_colors_differ_by_mode() {
+        let mut tm = ThemeManager::new();
+        let light_grid = tm.grid_color();
+        let light_major = tm.grid_major_color();
+        tm.toggle_theme();
+        let dark_grid = tm.grid_color();
+        let dark_major = tm.grid_major_color();
+        assert_ne!(light_grid, dark_grid);
+        assert_ne!(light_major, dark_major);
+    }
+
+    #[test]
+    fn hex_to_color32_accent_green() {
+        let c = hex(0x4eff93);
+        assert_eq!(c, Color32::from_rgb(0x4e, 0xff, 0x93));
+    }
+
+    #[test]
+    fn selection_color_has_alpha() {
+        let d = ThemeColors::dark_default();
+        // selection color should be semi-transparent
+        assert!(d.selection.a() < 255);
+
+        let l = ThemeColors::light_default();
+        assert!(l.selection.a() < 255);
+    }
+
+    #[test]
+    fn viewport_gradient_bands_descend_in_dark() {
+        // Dark gradient bands should generally get darker top to bottom
+        let first = DARK_GRADIENT[0];
+        let last = DARK_GRADIENT[7];
+        let first_brightness: u16 = first.iter().map(|&c| c as u16).sum();
+        let last_brightness: u16 = last.iter().map(|&c| c as u16).sum();
+        assert!(first_brightness >= last_brightness);
+    }
+
+    #[test]
+    fn viewport_gradient_bands_ascend_in_light() {
+        // Light gradient bands should generally get lighter top to bottom
+        let first = LIGHT_GRADIENT[0];
+        let last = LIGHT_GRADIENT[7];
+        let first_brightness: u16 = first.iter().map(|&c| c as u16).sum();
+        let last_brightness: u16 = last.iter().map(|&c| c as u16).sum();
+        assert!(first_brightness <= last_brightness);
+    }
+
+    #[test]
+    fn light_text_readable_on_light_bg() {
+        let l = ThemeColors::light_default();
+        // Text should be substantially darker than background in light mode
+        let text_brightness = l.text.r() as u16 + l.text.g() as u16 + l.text.b() as u16;
+        let bg_brightness = l.background.r() as u16 + l.background.g() as u16 + l.background.b() as u16;
+        assert!(bg_brightness > text_brightness + 200, "Light mode text must contrast with background");
+    }
+
+    #[test]
+    fn dark_text_readable_on_dark_bg() {
+        let d = ThemeColors::dark_default();
+        // Text should be substantially brighter than background in dark mode
+        let text_brightness = d.text.r() as u16 + d.text.g() as u16 + d.text.b() as u16;
+        let bg_brightness = d.background.r() as u16 + d.background.g() as u16 + d.background.b() as u16;
+        assert!(text_brightness > bg_brightness + 200, "Dark mode text must contrast with background");
     }
 }

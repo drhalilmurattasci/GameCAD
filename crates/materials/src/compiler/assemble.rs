@@ -130,7 +130,7 @@ pub fn compile_graph(graph: &MaterialGraph) -> Result<String> {
                 let factor = resolve_input("Factor");
                 let var = next_var(&mut var_counter);
                 let out_pin = output_pin(node);
-                body_lines.push(format!("    let {var} = mix({a}, {b}, vec4<f32>({factor}));"));
+                body_lines.push(format!("    let {var} = mix({a}, {b}, {factor});"));
                 pin_vars.insert((nid, out_pin), var);
             }
             NodeKind::MathLerp => {

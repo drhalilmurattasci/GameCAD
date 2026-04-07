@@ -94,10 +94,10 @@ impl ForgeEditorApp {
         }
 
         // Left click: Select entity (simple - pick closest placeholder object)
-        if response.clicked_by(PointerButton::Primary) && !modifiers.alt {
-            if let Some(pos) = pointer_pos {
-                self.handle_viewport_click(pos, &response.rect, modifiers);
-            }
+        if response.clicked_by(PointerButton::Primary) && !modifiers.alt
+            && let Some(pos) = pointer_pos
+        {
+            self.handle_viewport_click(pos, &response.rect, modifiers);
         }
 
         // Left drag: Tool transform OR box select
@@ -195,13 +195,12 @@ impl ForgeEditorApp {
         }
 
         // Clear right-click tracking once the gesture ends
-        if let Some(start) = self.right_click_start_pos {
-            if response.drag_stopped_by(PointerButton::Secondary)
-                || response.clicked_by(PointerButton::Secondary)
-            {
-                let _end = pointer_pos.unwrap_or(start);
-                self.right_click_start_pos = None;
-            }
+        if let Some(start) = self.right_click_start_pos
+            && (response.drag_stopped_by(PointerButton::Secondary)
+                || response.clicked_by(PointerButton::Secondary))
+        {
+            let _end = pointer_pos.unwrap_or(start);
+            self.right_click_start_pos = None;
         }
     }
 }

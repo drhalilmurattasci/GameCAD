@@ -3,6 +3,30 @@
 //! Each undoable action implements the [`Command`] trait. Commands are executed
 //! through [`CommandHistory`] which maintains undo and redo stacks and emits
 //! events via the [`EventBus`].
+//!
+//! # Examples
+//!
+//! ```
+//! use core::commands::{Command, CommandContext, CommandHistory};
+//! use core::ecs::World;
+//! use core::events::EventBus;
+//! use anyhow::Result;
+//!
+//! struct NoOp;
+//! impl Command for NoOp {
+//!     fn execute(&mut self, _ctx: &mut CommandContext) -> Result<()> { Ok(()) }
+//!     fn undo(&mut self, _ctx: &mut CommandContext) -> Result<()> { Ok(()) }
+//!     fn description(&self) -> &str { "No-op" }
+//! }
+//!
+//! let mut world = World::new();
+//! let events = EventBus::new();
+//! let mut history = CommandHistory::new();
+//! let mut ctx = CommandContext::new(&mut world, &events);
+//!
+//! history.execute(Box::new(NoOp), &mut ctx).unwrap();
+//! assert!(history.can_undo());
+//! ```
 
 use anyhow::Result;
 

@@ -6,9 +6,10 @@
 use std::fmt;
 
 /// Controls how meshes are rendered in the viewport.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum RenderStyle {
     /// Full PBR shading with lights and materials.
+    #[default]
     Pbr,
     /// Wireframe only.
     Wireframe,
@@ -18,12 +19,6 @@ pub enum RenderStyle {
     Normals,
     /// Depth visualization (near = white, far = black).
     Depth,
-}
-
-impl Default for RenderStyle {
-    fn default() -> Self {
-        Self::Pbr
-    }
 }
 
 impl fmt::Display for RenderStyle {
@@ -49,6 +44,7 @@ impl RenderStyle {
     ];
 
     /// Whether this style needs the lighting uniform buffer.
+    #[inline]
     pub fn needs_lighting(&self) -> bool {
         matches!(self, Self::Pbr)
     }

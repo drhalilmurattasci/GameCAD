@@ -32,6 +32,7 @@ impl ForgeEditorApp {
         // Max depth for depth mode (use camera distance * 2 as a reasonable max)
         let max_depth = self.orbit_camera.distance * 3.0;
 
+        #[allow(clippy::needless_range_loop)]
         for idx in 1..entity_count {
             let pos = Vec3::new(
                 self.transforms[idx][0],
@@ -52,13 +53,10 @@ impl ForgeEditorApp {
                     } else {
                         sec.linear_multiply(0.85)
                     }
+                } else if is_selected {
+                    wire_color
                 } else {
-                    let wc = if is_selected {
-                        wire_color
-                    } else {
-                        wire_color.linear_multiply(0.85)
-                    };
-                    wc
+                    wire_color.linear_multiply(0.85)
                 };
 
                 if is_sphere {

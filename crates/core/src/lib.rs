@@ -5,6 +5,20 @@
 //! frame-timing utilities.
 //!
 //! All public types are gathered in the [`prelude`] module for convenience.
+//!
+//! # Examples
+//!
+//! ```
+//! use core::prelude::*;
+//!
+//! let t = Transform::IDENTITY;
+//! assert_eq!(t.matrix(), glam::Mat4::IDENTITY);
+//!
+//! let bus = EventBus::new();
+//! let rx = bus.subscribe::<String>();
+//! bus.publish("hello".to_string());
+//! assert_eq!(rx.try_recv(), Some("hello".to_string()));
+//! ```
 
 pub mod commands;
 pub mod ecs;

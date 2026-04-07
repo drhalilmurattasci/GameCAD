@@ -14,9 +14,13 @@ use crate::vertex::{GpuMesh, Vertex};
 /// Load all meshes from a GLB/glTF file, uploading vertex and index buffers to the GPU.
 ///
 /// Each primitive in each mesh becomes a separate `GpuMesh`.
+///
+/// The `queue` parameter is reserved for future use (e.g. texture uploads from
+/// the same glTF file) and is currently unused.
+#[allow(unused_variables)]
 pub fn load_glb(
     device: &wgpu::Device,
-    _queue: &wgpu::Queue,
+    queue: &wgpu::Queue,
     path: &Path,
 ) -> Result<Vec<GpuMesh>> {
     let data = std::fs::read(path)

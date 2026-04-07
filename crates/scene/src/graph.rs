@@ -17,6 +17,7 @@ pub struct SceneGraph {
 
 impl SceneGraph {
     /// Creates a new scene graph with a single root node.
+    #[inline]
     pub fn new() -> Self {
         let mut root_node = SceneNode::new("Root");
         root_node.locked = true;
@@ -31,6 +32,7 @@ impl SceneGraph {
     }
 
     /// Returns the root node ID.
+    #[inline]
     pub fn root(&self) -> NodeId {
         self.root
     }
@@ -49,6 +51,9 @@ impl SceneGraph {
 
         let id = node.id;
         node.parent = Some(actual_parent);
+        // Clear stale children from deserialization; they will be re-established
+        // as each child is added individually.
+        node.children.clear();
         self.nodes.insert(id, node);
 
         if let Some(parent_node) = self.nodes.get_mut(&actual_parent) {
@@ -90,10 +95,15 @@ impl SceneGraph {
 
     /// Moves a node to be a child of a new parent.
     ///
-    /// Returns `true` on success.
+    /// Returns `true` on success. Reparenting to self or to a descendant is
+    /// rejected to prevent cycles.
     pub fn reparent(&mut self, node_id: NodeId, new_parent: NodeId) -> bool {
         if node_id == self.root {
             warn!("Cannot reparent the root node");
+            return false;
+        }
+        if node_id == new_parent {
+            warn!("Cannot reparent a node to itself");
             return false;
         }
         if !self.nodes.contains_key(&node_id) || !self.nodes.contains_key(&new_parent) {
@@ -128,16 +138,19 @@ impl SceneGraph {
     }
 
     /// Returns an immutable reference to a node.
+    #[inline]
     pub fn get_node(&self, id: NodeId) -> Option<&SceneNode> {
         self.nodes.get(&id)
     }
 
     /// Returns a mutable reference to a node.
+    #[inline]
     pub fn get_node_mut(&mut self, id: NodeId) -> Option<&mut SceneNode> {
         self.nodes.get_mut(&id)
     }
 
     /// Returns the direct children of a node.
+    #[inline]
     pub fn children(&self, id: NodeId) -> &[NodeId] {
         self.nodes
             .get(&id)
@@ -191,6 +204,7 @@ impl SceneGraph {
     }
 
     /// Returns the total number of nodes (including root).
+    #[inline]
     pub fn node_count(&self) -> usize {
         self.nodes.len()
     }
@@ -295,5 +309,172 @@ mod tests {
         assert_eq!(order[0], root);
         assert_eq!(order[1], a);
         assert_eq!(order[2], b);
+    }
+
+    // ── Edge case tests ────────────────────────────────────────────
+
+    #[test]
+    fn cannot_reparent_to_self() {
+        let mut graph = SceneGraph::new();
+        let root = graph.root();
+        let a = graph.add_node(SceneNode::new("A"), root);
+        assert!(!graph.reparent(a, a));
+        // Node should still be a child of root.
+        assert!(graph.children(root).contains(&a));
+    }
+
+    #[test]
+    fn cannot_reparent_to_descendant() {
+        let mut graph = SceneGraph::new();
+        let root = graph.root();
+        let a = graph.add_node(SceneNode::new("A"), root);
+        let b = graph.add_node(SceneNode::new("B"), a);
+        let c = graph.add_node(SceneNode::new("C"), b);
+        // Reparenting A under its grandchild C must fail.
+        assert!(!graph.reparent(a, c));
+    }
+
+    #[test]
+    fn cannot_reparent_root() {
+        let mut graph = SceneGraph::new();
+        let root = graph.root();
+        let a = graph.add_node(SceneNode::new("A"), root);
+        assert!(!graph.reparent(root, a));
+    }
+
+    #[test]
+    fn reparent_nonexistent_node() {
+        let mut graph = SceneGraph::new();
+        let root = graph.root();
+        let fake_id = NodeId::new();
+        assert!(!graph.reparent(fake_id, root));
+    }
+
+    #[test]
+    fn reparent_to_nonexistent_parent() {
+        let mut graph = SceneGraph::new();
+        let root = graph.root();
+        let a = graph.add_node(SceneNode::new("A"), root);
+        let fake_id = NodeId::new();
+        assert!(!graph.reparent(a, fake_id));
+    }
+
+    #[test]
+    fn add_node_with_invalid_parent_falls_back_to_root() {
+        let mut graph = SceneGraph::new();
+        let fake_parent = NodeId::new();
+        let node = SceneNode::new("Orphan");
+        let id = graph.add_node(node, fake_parent);
+        // Should have been placed under root.
+        assert!(graph.children(graph.root()).contains(&id));
+        assert_eq!(graph.get_node(id).unwrap().parent, Some(graph.root()));
+    }
+
+    #[test]
+    fn remove_nonexistent_node() {
+        let mut graph = SceneGraph::new();
+        let fake_id = NodeId::new();
+        assert!(!graph.remove_node(fake_id));
+    }
+
+    #[test]
+    fn remove_leaf_node() {
+        let mut graph = SceneGraph::new();
+        let root = graph.root();
+        let a = graph.add_node(SceneNode::new("A"), root);
+        assert!(graph.remove_node(a));
+        assert!(graph.children(root).is_empty());
+        assert_eq!(graph.node_count(), 1);
+    }
+
+    #[test]
+    fn remove_deep_subtree() {
+        let mut graph = SceneGraph::new();
+        let root = graph.root();
+        let a = graph.add_node(SceneNode::new("A"), root);
+        let b = graph.add_node(SceneNode::new("B"), a);
+        let _c = graph.add_node(SceneNode::new("C"), b);
+        let _d = graph.add_node(SceneNode::new("D"), b);
+        // Remove A, which should remove A, B, C, D.
+        assert!(graph.remove_node(a));
+        assert_eq!(graph.node_count(), 1);
+    }
+
+    #[test]
+    fn children_of_nonexistent_returns_empty() {
+        let graph = SceneGraph::new();
+        let fake_id = NodeId::new();
+        assert!(graph.children(fake_id).is_empty());
+    }
+
+    #[test]
+    fn world_transform_single_node() {
+        let graph = SceneGraph::new();
+        let root = graph.root();
+        let wt = graph.world_transform(root);
+        assert_eq!(wt.position, glam::Vec3::ZERO);
+        assert_eq!(wt.scale, glam::Vec3::ONE);
+    }
+
+    #[test]
+    fn world_transform_propagates() {
+        let mut graph = SceneGraph::new();
+        let root = graph.root();
+
+        let mut parent_node = SceneNode::new("Parent");
+        parent_node.transform.position = glam::Vec3::new(10.0, 0.0, 0.0);
+        let parent_id = graph.add_node(parent_node, root);
+
+        let mut child_node = SceneNode::new("Child");
+        child_node.transform.position = glam::Vec3::new(5.0, 0.0, 0.0);
+        let child_id = graph.add_node(child_node, parent_id);
+
+        let wt = graph.world_transform(child_id);
+        // Child is at local (5,0,0) under parent at (10,0,0), so world = (15,0,0).
+        assert!((wt.position.x - 15.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn world_transform_nonexistent_returns_identity() {
+        let graph = SceneGraph::new();
+        let fake_id = NodeId::new();
+        let wt = graph.world_transform(fake_id);
+        assert_eq!(wt, forge_core::math::Transform::IDENTITY);
+    }
+
+    #[test]
+    fn default_is_same_as_new() {
+        let a = SceneGraph::new();
+        let b = SceneGraph::default();
+        assert_eq!(a.node_count(), b.node_count());
+    }
+
+    #[test]
+    fn reparent_updates_parent_field() {
+        let mut graph = SceneGraph::new();
+        let root = graph.root();
+        let a = graph.add_node(SceneNode::new("A"), root);
+        let b = graph.add_node(SceneNode::new("B"), root);
+        graph.reparent(b, a);
+        assert_eq!(graph.get_node(b).unwrap().parent, Some(a));
+    }
+
+    #[test]
+    fn iter_depth_first_single_root() {
+        let graph = SceneGraph::new();
+        let order = graph.iter_depth_first(graph.root());
+        assert_eq!(order.len(), 1);
+        assert_eq!(order[0], graph.root());
+    }
+
+    #[test]
+    fn add_multiple_children_preserves_order() {
+        let mut graph = SceneGraph::new();
+        let root = graph.root();
+        let a = graph.add_node(SceneNode::new("A"), root);
+        let b = graph.add_node(SceneNode::new("B"), root);
+        let c = graph.add_node(SceneNode::new("C"), root);
+        let children = graph.children(root);
+        assert_eq!(children, &[a, b, c]);
     }
 }

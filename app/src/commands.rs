@@ -132,10 +132,10 @@ impl ForgeEditorApp {
                         }
 
                         // Enter key executes first filtered command
-                        if ctx.input(|i| i.key_pressed(egui::Key::Enter)) {
-                            if let Some(&&(name, _)) = filtered.first() {
-                                executed_command = Some(name);
-                            }
+                        if ctx.input(|i| i.key_pressed(egui::Key::Enter))
+                            && let Some(&&(name, _)) = filtered.first()
+                        {
+                            executed_command = Some(name);
                         }
 
                         // Execute the selected command

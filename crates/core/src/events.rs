@@ -5,7 +5,7 @@
 //!
 //! # Examples
 //!
-//! ```rust,ignore
+//! ```
 //! use core::events::EventBus;
 //!
 //! let bus = EventBus::new();

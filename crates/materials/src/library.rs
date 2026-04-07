@@ -33,6 +33,7 @@ impl Default for MaterialLibrary {
 
 impl MaterialLibrary {
     /// Creates an empty library (no default materials).
+    #[inline]
     pub fn new() -> Self {
         Self {
             materials: HashMap::new(),
@@ -40,21 +41,25 @@ impl MaterialLibrary {
     }
 
     /// Inserts a material, returning the previous one if the id was already present.
+    #[inline]
     pub fn add(&mut self, mat: PbrMaterial) -> Option<PbrMaterial> {
         self.materials.insert(mat.id, mat)
     }
 
     /// Removes a material by id, returning it if found.
+    #[inline]
     pub fn remove(&mut self, id: &MaterialId) -> Option<PbrMaterial> {
         self.materials.remove(id)
     }
 
     /// Returns a reference to the material with the given id.
+    #[inline]
     pub fn get(&self, id: &MaterialId) -> Option<&PbrMaterial> {
         self.materials.get(id)
     }
 
     /// Returns a mutable reference to the material with the given id.
+    #[inline]
     pub fn get_mut(&mut self, id: &MaterialId) -> Option<&mut PbrMaterial> {
         self.materials.get_mut(id)
     }
@@ -223,5 +228,76 @@ mod tests {
         assert_eq!(lib.search("Loaded").len(), 1);
 
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn load_from_nonexistent_directory_fails() {
+        let mut lib = MaterialLibrary::new();
+        let result = lib.load_from_directory(std::path::Path::new("/nonexistent/dir"));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn search_empty_query_returns_all() {
+        let lib = MaterialLibrary::default();
+        let results = lib.search("");
+        assert_eq!(results.len(), 4);
+    }
+
+    #[test]
+    fn search_no_match() {
+        let lib = MaterialLibrary::default();
+        let results = lib.search("nonexistent_xyz_material");
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn get_mut_and_modify() {
+        let mut lib = MaterialLibrary::default();
+        let ids: Vec<MaterialId> = lib.list().map(|(id, _)| *id).collect();
+        if let Some(mat) = lib.get_mut(&ids[0]) {
+            mat.name = "Modified".into();
+        }
+        assert_eq!(lib.get(&ids[0]).unwrap().name, "Modified");
+    }
+
+    #[test]
+    fn add_replaces_existing() {
+        let mut lib = MaterialLibrary::new();
+        let mut mat = PbrMaterial::default();
+        let id = mat.id;
+        mat.name = "Original".into();
+        lib.add(mat);
+
+        let mut mat2 = PbrMaterial::default();
+        mat2.id = id;
+        mat2.name = "Replacement".into();
+        let prev = lib.add(mat2);
+        assert!(prev.is_some());
+        assert_eq!(prev.unwrap().name, "Original");
+        assert_eq!(lib.get(&id).unwrap().name, "Replacement");
+    }
+
+    #[test]
+    fn remove_nonexistent_returns_none() {
+        let mut lib = MaterialLibrary::new();
+        let result = lib.remove(&MaterialId::new());
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn default_materials_are_valid() {
+        let lib = MaterialLibrary::default();
+        for (_, mat) in lib.list() {
+            assert!(!mat.name.is_empty());
+            match &mat.albedo {
+                ColorOrTexture::Color(c) => {
+                    assert!(c.r >= 0.0 && c.r <= 1.0);
+                    assert!(c.g >= 0.0 && c.g <= 1.0);
+                    assert!(c.b >= 0.0 && c.b <= 1.0);
+                }
+                _ => {}
+            }
+        }
     }
 }

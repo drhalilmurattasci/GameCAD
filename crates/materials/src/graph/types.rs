@@ -15,6 +15,7 @@ pub struct NodeId(pub Uuid);
 
 impl NodeId {
     /// Generate a new random node identifier.
+    #[inline]
     pub fn new() -> Self {
         Self(Uuid::new_v4())
     }
@@ -38,6 +39,7 @@ pub struct PinId(pub Uuid);
 
 impl PinId {
     /// Generate a new random pin identifier.
+    #[inline]
     pub fn new() -> Self {
         Self(Uuid::new_v4())
     }

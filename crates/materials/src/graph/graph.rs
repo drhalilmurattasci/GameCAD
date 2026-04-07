@@ -67,11 +67,13 @@ impl MaterialGraph {
     }
 
     /// Get a reference to a node.
+    #[inline]
     pub fn get_node(&self, id: &NodeId) -> Option<&MaterialNode> {
         self.nodes.get(id)
     }
 
     /// Get a mutable reference to a node.
+    #[inline]
     pub fn get_node_mut(&mut self, id: &NodeId) -> Option<&mut MaterialNode> {
         self.nodes.get_mut(id)
     }

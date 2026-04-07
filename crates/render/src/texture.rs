@@ -2,6 +2,10 @@
 //!
 //! [`Texture`] wraps a wgpu texture, its view, and a sampler. It can be created
 //! from raw image bytes (PNG/JPEG) or as a depth attachment.
+//!
+//! Both [`Texture::load_from_bytes`] and [`Texture::create_depth_texture`]
+//! require a GPU device, so they cannot be demonstrated in doctests without
+//! a running wgpu context.
 
 use anyhow::{Context, Result};
 

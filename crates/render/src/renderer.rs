@@ -62,11 +62,13 @@ impl Renderer {
     }
 
     /// Current surface format.
+    #[inline]
     pub fn surface_format(&self) -> wgpu::TextureFormat {
         self.surface_format
     }
 
     /// Current dimensions.
+    #[inline]
     pub fn size(&self) -> (u32, u32) {
         (self.width, self.height)
     }

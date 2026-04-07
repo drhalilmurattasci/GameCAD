@@ -1,4 +1,16 @@
 //! Thin wrapper around [`hecs`] providing a friendlier API for the editor.
+//!
+//! # Examples
+//!
+//! ```
+//! use core::ecs::World;
+//!
+//! let mut world = World::new();
+//! let id = world.spawn_entity((42_u32,));
+//! assert!(world.contains(id));
+//! world.despawn_entity(id).unwrap();
+//! assert!(!world.contains(id));
+//! ```
 
 use std::fmt;
 

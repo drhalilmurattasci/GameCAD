@@ -53,10 +53,9 @@ impl ForgeEditorApp {
                 // Gradient background (8-band, adapts to dark/light theme)
                 let gradient = self.theme_manager.viewport_gradient();
                 let bands = gradient.len();
-                for i in 0..bands {
+                for (i, rgb) in gradient.iter().enumerate() {
                     let t0 = i as f32 / bands as f32;
                     let t1 = (i + 1) as f32 / bands as f32;
-                    let rgb = gradient[i];
                     let c = Color32::from_rgb(rgb[0], rgb[1], rgb[2]);
                     let band_rect = Rect::from_min_max(
                         Pos2::new(rect.left(), rect.top() + t0 * rect.height()),

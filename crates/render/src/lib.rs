@@ -8,6 +8,17 @@
 //!
 //! The main entry point is [`Renderer`], which orchestrates a full frame pass
 //! against a [`GpuContext`] and a target texture view.
+//!
+//! # Examples
+//!
+//! ```
+//! use render::{RenderStyle, Camera, LightSet};
+//!
+//! let cam = Camera::default();
+//! let lights = LightSet::default();
+//! let style = RenderStyle::Pbr;
+//! assert!(style.needs_lighting());
+//! ```
 
 pub mod camera;
 pub mod gpu;

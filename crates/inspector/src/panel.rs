@@ -37,12 +37,14 @@ impl Default for InspectorPanel {
 
 impl InspectorPanel {
     /// Creates a new inspector panel.
+    #[inline]
     pub fn new() -> Self {
         Self::default()
     }
 
     /// Call this when the selection changes to force the Euler cache to
     /// re-sync from the new node's quaternion.
+    #[inline]
     pub fn invalidate_euler_cache(&mut self) {
         self.euler_dirty = true;
     }
@@ -312,5 +314,22 @@ mod tests {
         let panel = InspectorPanel::new();
         // Euler cache starts dirty so the first render syncs from the node.
         assert!(panel.euler_dirty);
+        assert_eq!(panel.euler_cache, Vec3::ZERO);
+    }
+
+    #[test]
+    fn invalidate_euler_cache_sets_dirty() {
+        let mut panel = InspectorPanel::new();
+        panel.euler_dirty = false;
+        panel.invalidate_euler_cache();
+        assert!(panel.euler_dirty);
+    }
+
+    #[test]
+    fn default_matches_new() {
+        let a = InspectorPanel::new();
+        let b = InspectorPanel::default();
+        assert_eq!(a.euler_dirty, b.euler_dirty);
+        assert_eq!(a.euler_cache, b.euler_cache);
     }
 }

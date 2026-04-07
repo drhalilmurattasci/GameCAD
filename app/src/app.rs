@@ -200,33 +200,33 @@ impl eframe::App for ForgeEditorApp {
         self.frame_count += 1;
 
         // Animate agent tasks
-        if let Some(t) = self.tasks.get_mut(1) {
-            if t.status == TaskStatus::Running {
-                t.progress = (t.progress + 0.001).min(1.0);
-                if t.progress >= 1.0 {
-                    t.status = TaskStatus::Complete;
-                }
+        if let Some(t) = self.tasks.get_mut(1)
+            && t.status == TaskStatus::Running
+        {
+            t.progress = (t.progress + 0.001).min(1.0);
+            if t.progress >= 1.0 {
+                t.status = TaskStatus::Complete;
             }
         }
-        if let Some(t) = self.tasks.get_mut(2) {
-            if t.status == TaskStatus::Running {
-                t.progress = (t.progress + 0.0005).min(1.0);
-                if t.progress >= 1.0 {
-                    t.status = TaskStatus::Complete;
-                }
+        if let Some(t) = self.tasks.get_mut(2)
+            && t.status == TaskStatus::Running
+        {
+            t.progress = (t.progress + 0.0005).min(1.0);
+            if t.progress >= 1.0 {
+                t.status = TaskStatus::Complete;
             }
         }
         // Start thumbnails once shaders > 50%
-        if self.tasks.get(2).map_or(false, |t| t.progress > 0.5) {
-            if let Some(t) = self.tasks.get_mut(3) {
-                if t.status == TaskStatus::Queued {
-                    t.status = TaskStatus::Running;
-                }
-                if t.status == TaskStatus::Running {
-                    t.progress = (t.progress + 0.0008).min(1.0);
-                    if t.progress >= 1.0 {
-                        t.status = TaskStatus::Complete;
-                    }
+        if self.tasks.get(2).is_some_and(|t| t.progress > 0.5)
+            && let Some(t) = self.tasks.get_mut(3)
+        {
+            if t.status == TaskStatus::Queued {
+                t.status = TaskStatus::Running;
+            }
+            if t.status == TaskStatus::Running {
+                t.progress = (t.progress + 0.0008).min(1.0);
+                if t.progress >= 1.0 {
+                    t.status = TaskStatus::Complete;
                 }
             }
         }

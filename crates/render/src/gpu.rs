@@ -7,6 +7,8 @@ use anyhow::Result;
 use tracing::info;
 
 /// Holds the wgpu instance, adapter, device, and queue.
+///
+/// Created via [`GpuContext::new`], which requests a high-performance GPU adapter.
 pub struct GpuContext {
     pub instance: wgpu::Instance,
     pub adapter: wgpu::Adapter,
@@ -16,6 +18,10 @@ pub struct GpuContext {
 
 impl GpuContext {
     /// Create a new GPU context (headless / off-screen).
+    ///
+    /// Requests a high-performance adapter with all available backends.
+    /// Returns an error if no suitable GPU adapter is found or if device
+    /// creation fails.
     pub async fn new() -> Result<Self> {
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
             backends: wgpu::Backends::all(),
@@ -29,7 +35,12 @@ impl GpuContext {
                 force_fallback_adapter: false,
             })
             .await
-            .ok_or_else(|| anyhow::anyhow!("No suitable GPU adapter found"))?;
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "No suitable GPU adapter found. Ensure a GPU with Vulkan, Metal, \
+                     or DX12 support is available."
+                )
+            })?;
 
         let (device, queue) = adapter
             .request_device(
@@ -69,6 +80,9 @@ pub struct SurfaceState {
 
 impl SurfaceState {
     /// Create a new surface state from an existing surface.
+    ///
+    /// Automatically selects an sRGB format when available, falling back to
+    /// the first supported format. Dimensions are clamped to at least 1x1.
     pub fn new(
         surface: wgpu::Surface<'static>,
         adapter: &wgpu::Adapter,
@@ -99,7 +113,7 @@ impl SurfaceState {
         Self { surface, config }
     }
 
-    /// Resize the surface. No-op if dimensions are zero.
+    /// Resize the surface. No-op if either dimension is zero.
     pub fn resize(&mut self, device: &wgpu::Device, width: u32, height: u32) {
         if width == 0 || height == 0 {
             return;
@@ -110,11 +124,13 @@ impl SurfaceState {
     }
 
     /// Returns the surface texture format.
+    #[inline]
     pub fn format(&self) -> wgpu::TextureFormat {
         self.config.format
     }
 
     /// Returns `(width, height)` of the surface.
+    #[inline]
     pub fn size(&self) -> (u32, u32) {
         (self.config.width, self.config.height)
     }

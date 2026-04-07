@@ -22,6 +22,7 @@ pub struct AssetDatabase {
 
 impl AssetDatabase {
     /// Creates an empty database.
+    #[inline]
     pub fn new() -> Self {
         Self::default()
     }
@@ -107,11 +108,13 @@ impl AssetDatabase {
     }
 
     /// Looks up an asset by its ID.
+    #[inline]
     pub fn get_by_id(&self, id: AssetId) -> Option<&AssetMetadata> {
         self.assets.get(&id)
     }
 
     /// Looks up an asset by its source path.
+    #[inline]
     pub fn get_by_path(&self, path: &Path) -> Option<&AssetMetadata> {
         self.path_index
             .get(path)
@@ -140,11 +143,13 @@ impl AssetDatabase {
     }
 
     /// Returns the total number of registered assets.
+    #[inline]
     pub fn len(&self) -> usize {
         self.assets.len()
     }
 
     /// Returns `true` if no assets are registered.
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.assets.is_empty()
     }
@@ -212,5 +217,144 @@ mod tests {
 
         let results = db.search("sword");
         assert_eq!(results.len(), 1);
+    }
+
+    #[test]
+    fn search_case_insensitive() {
+        let mut db = AssetDatabase::new();
+        db.register_asset(AssetMetadata::new(
+            AssetType::Mesh,
+            PathBuf::from("models/BigSword.glb"),
+        ));
+
+        let results = db.search("bigsword");
+        assert_eq!(results.len(), 1);
+    }
+
+    #[test]
+    fn search_by_type_label() {
+        let mut db = AssetDatabase::new();
+        db.register_asset(AssetMetadata::new(
+            AssetType::Texture,
+            PathBuf::from("a.png"),
+        ));
+
+        let results = db.search("texture");
+        assert_eq!(results.len(), 1);
+    }
+
+    #[test]
+    fn search_empty_query_returns_all() {
+        let mut db = AssetDatabase::new();
+        db.register_asset(AssetMetadata::new(
+            AssetType::Mesh,
+            PathBuf::from("a.glb"),
+        ));
+        db.register_asset(AssetMetadata::new(
+            AssetType::Texture,
+            PathBuf::from("b.png"),
+        ));
+
+        let results = db.search("");
+        assert_eq!(results.len(), 2);
+    }
+
+    #[test]
+    fn search_no_results() {
+        let mut db = AssetDatabase::new();
+        db.register_asset(AssetMetadata::new(
+            AssetType::Mesh,
+            PathBuf::from("a.glb"),
+        ));
+
+        let results = db.search("zzzzz_no_match");
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn remove_nonexistent_returns_none() {
+        let mut db = AssetDatabase::new();
+        assert!(db.remove_asset(AssetId::new()).is_none());
+    }
+
+    #[test]
+    fn remove_cleans_path_index() {
+        let mut db = AssetDatabase::new();
+        let meta = AssetMetadata::new(AssetType::Mesh, PathBuf::from("a.glb"));
+        let id = meta.id;
+        let path = meta.source_path.clone();
+        db.register_asset(meta);
+        db.remove_asset(id);
+        assert!(db.get_by_path(&path).is_none());
+        assert!(db.path_index.is_empty());
+    }
+
+    #[test]
+    fn register_duplicate_id_overwrites() {
+        let mut db = AssetDatabase::new();
+        let meta1 = AssetMetadata::new(AssetType::Mesh, PathBuf::from("a.glb"));
+        let id = meta1.id;
+        db.register_asset(meta1);
+
+        // Create a second metadata with the same ID but different path.
+        let mut meta2 = AssetMetadata::new(AssetType::Texture, PathBuf::from("b.png"));
+        meta2.id = id;
+        db.register_asset(meta2);
+
+        // Should overwrite: only 1 asset with that ID, but the old path index entry
+        // for "a.glb" becomes stale.
+        assert_eq!(db.assets.len(), 1);
+        assert_eq!(db.get_by_id(id).unwrap().asset_type, AssetType::Texture);
+    }
+
+    #[test]
+    fn new_database_is_empty() {
+        let db = AssetDatabase::new();
+        assert!(db.is_empty());
+        assert_eq!(db.len(), 0);
+    }
+
+    #[test]
+    fn find_by_type_empty_db() {
+        let db = AssetDatabase::new();
+        assert!(db.find_by_type(AssetType::Mesh).is_empty());
+    }
+
+    #[test]
+    fn scan_empty_directory() {
+        let dir = std::env::temp_dir().join("forge_asset_test_empty_scan");
+        std::fs::create_dir_all(&dir).unwrap();
+        // Make sure it's empty.
+        for entry in std::fs::read_dir(&dir).unwrap() {
+            let _ = std::fs::remove_file(entry.unwrap().path());
+        }
+
+        let mut db = AssetDatabase::new();
+        let count = db.scan_directory(&dir).unwrap();
+        assert_eq!(count, 0);
+        assert!(db.is_empty());
+
+        let _ = std::fs::remove_dir(&dir);
+    }
+
+    #[test]
+    fn scan_directory_finds_assets() {
+        let dir = std::env::temp_dir().join("forge_asset_test_scan");
+        std::fs::create_dir_all(&dir).unwrap();
+        // Create a fake .glb file.
+        std::fs::write(dir.join("test.glb"), b"fake").unwrap();
+        // Create a file with unknown extension -- should be skipped.
+        std::fs::write(dir.join("readme.txt"), b"hi").unwrap();
+
+        let mut db = AssetDatabase::new();
+        let count = db.scan_directory(&dir).unwrap();
+        assert_eq!(count, 1);
+        assert_eq!(db.len(), 1);
+
+        // Clean up.
+        let _ = std::fs::remove_file(dir.join("test.glb"));
+        let _ = std::fs::remove_file(dir.join("test.glb.meta.toml"));
+        let _ = std::fs::remove_file(dir.join("readme.txt"));
+        let _ = std::fs::remove_dir(&dir);
     }
 }

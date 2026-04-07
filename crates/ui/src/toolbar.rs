@@ -13,15 +13,17 @@ pub struct ToolbarButton {
     pub label: String,
     pub tooltip: String,
     pub enabled: bool,
+    pub active: bool,
 }
 
 impl ToolbarButton {
-    /// Creates a new enabled toolbar button.
+    /// Creates a new enabled, non-active toolbar button.
     pub fn new(label: impl Into<String>, tooltip: impl Into<String>) -> Self {
         Self {
             label: label.into(),
             tooltip: tooltip.into(),
             enabled: true,
+            active: false,
         }
     }
 
@@ -31,23 +33,45 @@ impl ToolbarButton {
         self
     }
 
-    /// Show the button. Returns the [`Response`].
-    pub fn show(&self, ui: &mut Ui) -> Response {
-        let colors = ThemeColors::dark_default();
+    /// Builder method to mark the button as currently active/pressed.
+    pub fn active(mut self, active: bool) -> Self {
+        self.active = active;
+        self
+    }
 
+    /// Show the button. Returns the [`Response`].
+    ///
+    /// `colors` should come from `ThemeManager::current_theme()` so buttons
+    /// render correctly in both dark and light modes.
+    pub fn show(&self, ui: &mut Ui, colors: &ThemeColors) -> Response {
         ui.add_enabled_ui(self.enabled, |ui| {
+            let text_color = if !self.enabled {
+                colors.text_disabled
+            } else if self.active {
+                colors.accent
+            } else {
+                colors.text
+            };
+
             let btn = egui::Button::new(
                 egui::RichText::new(&self.label)
                     .size(13.0)
-                    .color(if self.enabled {
-                        colors.text
-                    } else {
-                        colors.text_dim
-                    }),
+                    .color(text_color),
             )
             .min_size(Vec2::new(28.0, 28.0));
 
             let response = ui.add(btn);
+
+            // Draw active indicator underline
+            if self.active && self.enabled {
+                let rect = response.rect;
+                let underline = egui::Rect::from_min_size(
+                    egui::pos2(rect.left(), rect.bottom() - 2.0),
+                    Vec2::new(rect.width(), 2.0),
+                );
+                ui.painter().rect_filled(underline, 0.0, colors.accent);
+            }
+
             if !self.tooltip.is_empty() {
                 response.on_hover_text(&self.tooltip)
             } else {
@@ -87,8 +111,9 @@ impl Toolbar {
     }
 
     /// Show the toolbar. Returns indices of buttons that were clicked.
-    pub fn show(&self, ui: &mut Ui) -> Vec<usize> {
-        let colors = ThemeColors::dark_default();
+    ///
+    /// `colors` should come from `ThemeManager::current_theme()`.
+    pub fn show(&self, ui: &mut Ui, colors: &ThemeColors) -> Vec<usize> {
         let mut clicked = Vec::new();
         let mut button_index = 0usize;
 
@@ -98,13 +123,13 @@ impl Toolbar {
             for item in &self.items {
                 match item {
                     ToolbarItem::Button(btn) => {
-                        if btn.show(ui).clicked() {
+                        if btn.show(ui, colors).clicked() {
                             clicked.push(button_index);
                         }
                         button_index += 1;
                     }
                     ToolbarItem::Separator => {
-                        separator(ui, &colors);
+                        draw_separator(ui, colors);
                     }
                 }
             }
@@ -121,7 +146,7 @@ impl Default for Toolbar {
 }
 
 /// Draw a vertical separator line in the toolbar.
-pub fn separator(ui: &mut Ui, colors: &ThemeColors) {
+pub fn draw_separator(ui: &mut Ui, colors: &ThemeColors) {
     let (rect, _) = ui.allocate_exact_size(Vec2::new(12.0, 24.0), egui::Sense::hover());
     let center_x = rect.center().x;
     ui.painter().line_segment(
@@ -131,4 +156,42 @@ pub fn separator(ui: &mut Ui, colors: &ThemeColors) {
         ],
         egui::Stroke::new(1.0, colors.border),
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn toolbar_button_builder() {
+        let btn = ToolbarButton::new("Test", "Tooltip")
+            .enabled(false)
+            .active(true);
+        assert!(!btn.enabled);
+        assert!(btn.active);
+        assert_eq!(btn.label, "Test");
+        assert_eq!(btn.tooltip, "Tooltip");
+    }
+
+    #[test]
+    fn toolbar_button_defaults() {
+        let btn = ToolbarButton::new("X", "");
+        assert!(btn.enabled);
+        assert!(!btn.active);
+    }
+
+    #[test]
+    fn toolbar_builder_chain() {
+        let tb = Toolbar::new()
+            .button(ToolbarButton::new("A", ""))
+            .separator()
+            .button(ToolbarButton::new("B", ""));
+        assert_eq!(tb.items.len(), 3);
+    }
+
+    #[test]
+    fn toolbar_default() {
+        let tb = Toolbar::default();
+        assert!(tb.items.is_empty());
+    }
 }

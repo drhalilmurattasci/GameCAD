@@ -34,6 +34,7 @@ pub enum PropertyValue {
 
 impl PropertyValue {
     /// Returns a human-readable type label.
+    #[inline]
     pub fn type_label(&self) -> &'static str {
         match self {
             Self::Float(_) => "Float",
@@ -66,5 +67,109 @@ mod tests {
             .type_label(),
             "Enum"
         );
+    }
+
+    #[test]
+    fn all_type_labels_non_empty() {
+        let values: Vec<PropertyValue> = vec![
+            PropertyValue::Float(0.0),
+            PropertyValue::Vec2(Vec2::ZERO),
+            PropertyValue::Vec3(Vec3::ZERO),
+            PropertyValue::Vec4(Vec4::ZERO),
+            PropertyValue::Color(Color::WHITE),
+            PropertyValue::Bool(false),
+            PropertyValue::String(String::new()),
+            PropertyValue::Int(0),
+            PropertyValue::Enum {
+                options: vec![],
+                selected: 0,
+            },
+            PropertyValue::AssetRef(AssetId::NIL),
+        ];
+        for v in &values {
+            assert!(
+                !v.type_label().is_empty(),
+                "Empty label for {:?}",
+                v.type_label()
+            );
+        }
+    }
+
+    #[test]
+    fn serde_roundtrip_float() {
+        let val = PropertyValue::Float(3.14);
+        let json = serde_json::to_string(&val).unwrap();
+        let back: PropertyValue = serde_json::from_str(&json).unwrap();
+        assert!(matches!(back, PropertyValue::Float(f) if (f - 3.14).abs() < 1e-5));
+    }
+
+    #[test]
+    fn serde_roundtrip_string() {
+        let val = PropertyValue::String("hello world".into());
+        let json = serde_json::to_string(&val).unwrap();
+        let back: PropertyValue = serde_json::from_str(&json).unwrap();
+        assert!(matches!(back, PropertyValue::String(s) if s == "hello world"));
+    }
+
+    #[test]
+    fn serde_roundtrip_enum() {
+        let val = PropertyValue::Enum {
+            options: vec!["A".into(), "B".into(), "C".into()],
+            selected: 2,
+        };
+        let json = serde_json::to_string(&val).unwrap();
+        let back: PropertyValue = serde_json::from_str(&json).unwrap();
+        match back {
+            PropertyValue::Enum { options, selected } => {
+                assert_eq!(options.len(), 3);
+                assert_eq!(selected, 2);
+            }
+            _ => panic!("Expected Enum"),
+        }
+    }
+
+    #[test]
+    fn serde_roundtrip_vec3() {
+        let val = PropertyValue::Vec3(Vec3::new(1.0, 2.0, 3.0));
+        let json = serde_json::to_string(&val).unwrap();
+        let back: PropertyValue = serde_json::from_str(&json).unwrap();
+        match back {
+            PropertyValue::Vec3(v) => {
+                assert!((v.x - 1.0).abs() < 1e-5);
+                assert!((v.y - 2.0).abs() < 1e-5);
+                assert!((v.z - 3.0).abs() < 1e-5);
+            }
+            _ => panic!("Expected Vec3"),
+        }
+    }
+
+    #[test]
+    fn serde_roundtrip_color() {
+        let val = PropertyValue::Color(Color::new(0.5, 0.6, 0.7, 0.8));
+        let json = serde_json::to_string(&val).unwrap();
+        let back: PropertyValue = serde_json::from_str(&json).unwrap();
+        match back {
+            PropertyValue::Color(c) => {
+                assert!((c.r - 0.5).abs() < 1e-5);
+                assert!((c.a - 0.8).abs() < 1e-5);
+            }
+            _ => panic!("Expected Color"),
+        }
+    }
+
+    #[test]
+    fn serde_roundtrip_asset_ref() {
+        let id = AssetId::new();
+        let val = PropertyValue::AssetRef(id);
+        let json = serde_json::to_string(&val).unwrap();
+        let back: PropertyValue = serde_json::from_str(&json).unwrap();
+        assert!(matches!(back, PropertyValue::AssetRef(back_id) if back_id == id));
+    }
+
+    #[test]
+    fn clone_preserves_value() {
+        let val = PropertyValue::Int(42);
+        let cloned = val.clone();
+        assert!(matches!(cloned, PropertyValue::Int(42)));
     }
 }

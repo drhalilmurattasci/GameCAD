@@ -185,6 +185,7 @@ impl MaterialNode {
     }
 
     /// Find a pin by its id.
+    #[inline]
     pub fn find_pin(&self, pin_id: &PinId) -> Option<&Pin> {
         self.pins.iter().find(|p| p.id == *pin_id)
     }

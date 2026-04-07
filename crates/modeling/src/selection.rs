@@ -37,21 +37,25 @@ impl MeshSelection {
     }
 
     /// Add a vertex to the selection.
+    #[inline]
     pub fn select_vertex(&mut self, vertex_id: VertexId) {
         self.vertices.insert(vertex_id);
     }
 
     /// Add an edge (half-edge) to the selection.
+    #[inline]
     pub fn select_edge(&mut self, edge_id: HalfEdgeId) {
         self.edges.insert(edge_id);
     }
 
     /// Add a face to the selection.
+    #[inline]
     pub fn select_face(&mut self, face_id: FaceId) {
         self.faces.insert(face_id);
     }
 
     /// Clear all selections.
+    #[inline]
     pub fn clear(&mut self) {
         self.vertices.clear();
         self.edges.clear();
@@ -304,6 +308,7 @@ impl MeshSelection {
     }
 
     /// Returns true if anything is selected.
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.vertices.is_empty() && self.edges.is_empty() && self.faces.is_empty()
     }
@@ -357,5 +362,100 @@ mod tests {
         sel.shrink_selection(&mesh);
         // For a cube, all faces are on the boundary, so shrinking should remove them all.
         assert!(sel.faces.len() < before);
+    }
+
+    #[test]
+    fn select_edge_and_face() {
+        let mut sel = MeshSelection::new();
+        sel.select_edge(5);
+        sel.select_face(2);
+        assert_eq!(sel.edges.len(), 1);
+        assert_eq!(sel.faces.len(), 1);
+        assert!(!sel.is_empty());
+    }
+
+    #[test]
+    fn select_duplicate_vertex() {
+        let mut sel = MeshSelection::new();
+        sel.select_vertex(0);
+        sel.select_vertex(0);
+        // HashSet should deduplicate.
+        assert_eq!(sel.vertices.len(), 1);
+    }
+
+    #[test]
+    fn grow_empty_selection_is_noop() {
+        let mesh = generate_cube(1.0);
+        let mut sel = MeshSelection::new();
+        sel.grow_selection(&mesh);
+        assert!(sel.is_empty());
+    }
+
+    #[test]
+    fn shrink_empty_selection_is_noop() {
+        let mesh = generate_cube(1.0);
+        let mut sel = MeshSelection::new();
+        sel.shrink_selection(&mesh);
+        assert!(sel.is_empty());
+    }
+
+    #[test]
+    fn shrink_single_face_removes_it() {
+        let mesh = generate_cube(1.0);
+        let mut sel = MeshSelection::new();
+        sel.select_face(0);
+        sel.shrink_selection(&mesh);
+        // A single face is always on the boundary, so it should be removed.
+        assert!(sel.faces.is_empty());
+    }
+
+    #[test]
+    fn select_loop_on_out_of_bounds_edge() {
+        let mesh = generate_cube(1.0);
+        let mut sel = MeshSelection::new();
+        sel.select_loop(&mesh, 99999);
+        // Should be a no-op, not panic.
+        assert!(sel.edges.is_empty());
+    }
+
+    #[test]
+    fn select_ring_on_out_of_bounds_edge() {
+        let mesh = generate_cube(1.0);
+        let mut sel = MeshSelection::new();
+        sel.select_ring(&mesh, 99999);
+        assert!(sel.edges.is_empty());
+    }
+
+    #[test]
+    fn grow_with_out_of_bounds_face() {
+        let mesh = generate_cube(1.0);
+        let mut sel = MeshSelection::new();
+        sel.faces.insert(99999);
+        // Should not panic.
+        sel.grow_selection(&mesh);
+    }
+
+    #[test]
+    fn shrink_with_out_of_bounds_face() {
+        let mesh = generate_cube(1.0);
+        let mut sel = MeshSelection::new();
+        sel.faces.insert(99999);
+        sel.shrink_selection(&mesh);
+    }
+
+    #[test]
+    fn select_loop_inserts_start_edge() {
+        let mesh = generate_cube(1.0);
+        let mut sel = MeshSelection::new();
+        sel.select_loop(&mesh, 0);
+        assert!(sel.edges.contains(&0), "Loop should contain the start edge");
+    }
+
+    #[test]
+    fn select_ring_inserts_start_edge() {
+        let mesh = generate_cube(1.0);
+        let mut sel = MeshSelection::new();
+        sel.select_ring(&mesh, 0);
+        assert!(sel.edges.contains(&0), "Ring should contain the start edge");
     }
 }

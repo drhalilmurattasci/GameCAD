@@ -167,10 +167,10 @@ impl ForgeEditorApp {
                 message: format!("Deleted: {}", names[idx]),
             });
             let child_idx = idx - 1;
-            if let Some(root) = self.outliner.first_mut() {
-                if child_idx < root.children.len() {
-                    root.children.remove(child_idx);
-                }
+            if let Some(root) = self.outliner.first_mut()
+                && child_idx < root.children.len()
+            {
+                root.children.remove(child_idx);
             }
             if idx < self.transforms.len() {
                 self.transforms.remove(idx);
@@ -210,15 +210,15 @@ impl ForgeEditorApp {
                 message: format!("Duplicated: {} -> {}", names[idx], new_name),
             });
             let child_idx = idx - 1;
-            if let Some(root) = self.outliner.first_mut() {
-                if child_idx < root.children.len() {
-                    let icon = root.children[child_idx].icon;
-                    root.children.push(OutlinerNode {
-                        name: new_name,
-                        icon,
-                        children: vec![],
-                    });
-                }
+            if let Some(root) = self.outliner.first_mut()
+                && child_idx < root.children.len()
+            {
+                let icon = root.children[child_idx].icon;
+                root.children.push(OutlinerNode {
+                    name: new_name,
+                    icon,
+                    children: vec![],
+                });
             }
             if idx < self.transforms.len() {
                 let t = self.transforms[idx];

@@ -38,9 +38,9 @@ pub struct StatusBar;
 
 impl StatusBar {
     /// Draw the status bar.
-    pub fn show(ui: &mut Ui, state: &StatusBarState) {
-        let colors = ThemeColors::dark_default();
-
+    ///
+    /// `colors` should come from `ThemeManager::current_theme()`.
+    pub fn show(ui: &mut Ui, state: &StatusBarState, colors: &ThemeColors) {
         egui::TopBottomPanel::bottom("status_bar")
             .exact_height(24.0)
             .show_inside(ui, |ui| {
@@ -67,11 +67,18 @@ impl StatusBar {
 
                     // Spacer
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        // FPS
+                        // FPS (colored by performance)
+                        let fps_color = if state.fps >= 55.0 {
+                            colors.success
+                        } else if state.fps >= 30.0 {
+                            colors.warning
+                        } else {
+                            colors.error
+                        };
                         ui.label(
                             egui::RichText::new(format!("{:.0} FPS", state.fps))
                                 .size(11.0)
-                                .color(colors.text_dim),
+                                .color(fps_color),
                         );
 
                         // Selection count
@@ -90,8 +97,7 @@ impl StatusBar {
                         if let Some((x, y, z)) = state.cursor_position {
                             ui.label(
                                 egui::RichText::new(format!(
-                                    "X:{:.1}  Y:{:.1}  Z:{:.1}",
-                                    x, y, z
+                                    "X:{x:.1}  Y:{y:.1}  Z:{z:.1}"
                                 ))
                                 .size(11.0)
                                 .color(colors.text_dim),
@@ -100,5 +106,20 @@ impl StatusBar {
                     });
                 });
             });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn status_bar_state_defaults() {
+        let state = StatusBarState::default();
+        assert!(state.message.is_empty());
+        assert_eq!(state.fps, 0.0);
+        assert!(state.cursor_position.is_none());
+        assert_eq!(state.selection_count, 0);
+        assert!(!state.agent_active);
     }
 }

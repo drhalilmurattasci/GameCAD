@@ -108,10 +108,10 @@ impl ForgeEditorApp {
                 self.transforms[idx][1],
                 self.transforms[idx][2],
             );
-            if let Some(screen_pos) = Self::project_3d(&vp, rect, world_pos) {
-                if sel_rect.contains(screen_pos) {
-                    self.selected_entities.push(idx);
-                }
+            if let Some(screen_pos) = Self::project_3d(&vp, rect, world_pos)
+                && sel_rect.contains(screen_pos)
+            {
+                self.selected_entities.push(idx);
             }
         }
         if !self.selected_entities.is_empty() {

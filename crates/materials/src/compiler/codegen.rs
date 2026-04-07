@@ -3,6 +3,7 @@
 use crate::graph::{NodeKind, PinDirection, PinId};
 
 /// Generate a unique variable name (`v0`, `v1`, ...) and advance the counter.
+#[inline]
 pub(crate) fn next_var(counter: &mut u32) -> String {
     let name = format!("v{counter}");
     *counter += 1;

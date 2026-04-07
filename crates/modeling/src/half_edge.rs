@@ -41,6 +41,7 @@ impl Default for HalfEdge {
 
 impl HalfEdge {
     /// Creates a half-edge with all fields set to [`INVALID_ID`].
+    #[inline]
     pub fn new() -> Self {
         Self {
             next: INVALID_ID,
@@ -49,6 +50,12 @@ impl HalfEdge {
             vertex: INVALID_ID,
             face: INVALID_ID,
         }
+    }
+
+    /// Returns `true` if this half-edge lies on a mesh boundary (has no twin).
+    #[inline]
+    pub fn is_boundary(&self) -> bool {
+        self.twin == INVALID_ID
     }
 }
 
@@ -255,6 +262,7 @@ impl EditMesh {
     }
 
     /// Add a vertex and return its id.
+    #[inline]
     pub fn add_vertex(&mut self, position: Vec3, normal: Vec3, uv: Vec2) -> VertexId {
         let id = self.vertices.len();
         self.vertices.push(Vertex {
@@ -267,6 +275,7 @@ impl EditMesh {
     }
 
     /// Add a half-edge and return its id.
+    #[inline]
     pub fn add_half_edge(&mut self, he: HalfEdge) -> HalfEdgeId {
         let id = self.half_edges.len();
         self.half_edges.push(he);
@@ -322,7 +331,7 @@ impl EditMesh {
 
         for he_id in 0..self.half_edges.len() {
             let he = self.half_edges[he_id];
-            if he.face == INVALID_ID {
+            if he.face == INVALID_ID || he.next == INVALID_ID {
                 continue;
             }
             let v0 = he.vertex;
@@ -334,6 +343,110 @@ impl EditMesh {
             }
             edge_map.insert((v0, v1), he_id);
         }
+    }
+
+    /// Validate the mesh topology and return a list of errors (empty = valid).
+    ///
+    /// Checks:
+    /// - All `next`/`prev` pointers are within bounds and consistent.
+    /// - Twin pairing is symmetric (`twin(twin(he)) == he`).
+    /// - Every face's half-edge loop returns to its start.
+    /// - Every vertex references a valid outgoing half-edge.
+    pub fn validate_topology(&self) -> Vec<String> {
+        let mut errors = Vec::new();
+        let he_count = self.half_edges.len();
+
+        // Half-edge pointer consistency.
+        for (i, he) in self.half_edges.iter().enumerate() {
+            if he.next != INVALID_ID {
+                if he.next >= he_count {
+                    errors.push(format!("HE {i}: next {} out of bounds", he.next));
+                } else if self.half_edges[he.next].prev != i {
+                    errors.push(format!(
+                        "HE {i}: next/prev mismatch (next={}, next.prev={})",
+                        he.next,
+                        self.half_edges[he.next].prev
+                    ));
+                }
+            }
+            if he.prev != INVALID_ID && he.prev >= he_count {
+                errors.push(format!("HE {i}: prev {} out of bounds", he.prev));
+            }
+            // Symmetric twin check.
+            if he.twin != INVALID_ID {
+                if he.twin >= he_count {
+                    errors.push(format!("HE {i}: twin {} out of bounds", he.twin));
+                } else if self.half_edges[he.twin].twin != i {
+                    errors.push(format!(
+                        "HE {i}: twin is not symmetric (twin={}, twin.twin={})",
+                        he.twin,
+                        self.half_edges[he.twin].twin
+                    ));
+                }
+            }
+            if he.vertex != INVALID_ID && he.vertex >= self.vertices.len() {
+                errors.push(format!("HE {i}: vertex {} out of bounds", he.vertex));
+            }
+            if he.face != INVALID_ID && he.face >= self.faces.len() {
+                errors.push(format!("HE {i}: face {} out of bounds", he.face));
+            }
+        }
+
+        // Face loop consistency.
+        for (fid, face) in self.faces.iter().enumerate() {
+            if face.edge == INVALID_ID || face.edge >= he_count {
+                errors.push(format!("Face {fid}: invalid edge ref {}", face.edge));
+                continue;
+            }
+            let start = face.edge;
+            let mut cur = start;
+            let mut steps = 0;
+            loop {
+                if self.half_edges[cur].face != fid {
+                    errors.push(format!(
+                        "Face {fid}: HE {cur} references face {} instead",
+                        self.half_edges[cur].face
+                    ));
+                    break;
+                }
+                cur = self.half_edges[cur].next;
+                steps += 1;
+                if cur == start {
+                    break;
+                }
+                if steps > he_count {
+                    errors.push(format!("Face {fid}: loop does not terminate"));
+                    break;
+                }
+            }
+        }
+
+        // Vertex edge back-reference.
+        for (vid, v) in self.vertices.iter().enumerate() {
+            if v.edge != INVALID_ID && v.edge >= he_count {
+                errors.push(format!("Vertex {vid}: edge {} out of bounds", v.edge));
+            }
+        }
+
+        errors
+    }
+
+    /// Returns a list of boundary half-edge IDs (those with no twin).
+    pub fn boundary_edges(&self) -> Vec<HalfEdgeId> {
+        self.half_edges
+            .iter()
+            .enumerate()
+            .filter(|(_, he)| he.twin == INVALID_ID && he.face != INVALID_ID)
+            .map(|(i, _)| i)
+            .collect()
+    }
+
+    /// Returns `true` if the mesh has any boundary edges.
+    #[inline]
+    pub fn has_boundary(&self) -> bool {
+        self.half_edges
+            .iter()
+            .any(|he| he.twin == INVALID_ID && he.face != INVALID_ID)
     }
 }
 
@@ -461,5 +574,161 @@ mod tests {
             }
         }
         assert!(found_twin, "Expected at least one twin-linked edge");
+    }
+
+    #[test]
+    fn twin_symmetry() {
+        // Verify twin(twin(he)) == he for all linked twins.
+        let positions = vec![
+            Vec3::new(0.0, 0.0, 0.0),
+            Vec3::new(1.0, 0.0, 0.0),
+            Vec3::new(0.5, 1.0, 0.0),
+            Vec3::new(1.5, 1.0, 0.0),
+        ];
+        let normals = vec![Vec3::Z; 4];
+        let uvs = vec![Vec2::ZERO; 4];
+        let indices = vec![0, 1, 2, 1, 3, 2];
+        let mesh = EditMesh::from_triangles(&positions, &normals, &uvs, &indices);
+
+        for (i, he) in mesh.half_edges.iter().enumerate() {
+            if he.twin != INVALID_ID {
+                assert_eq!(
+                    mesh.half_edges[he.twin].twin, i,
+                    "Twin symmetry broken at half-edge {i}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn validate_topology_single_tri() {
+        let positions = vec![
+            Vec3::new(0.0, 0.0, 0.0),
+            Vec3::new(1.0, 0.0, 0.0),
+            Vec3::new(0.0, 1.0, 0.0),
+        ];
+        let normals = vec![Vec3::Z; 3];
+        let uvs = vec![Vec2::ZERO; 3];
+        let indices = vec![0, 1, 2];
+        let mesh = EditMesh::from_triangles(&positions, &normals, &uvs, &indices);
+        let errors = mesh.validate_topology();
+        assert!(errors.is_empty(), "Topology errors: {:?}", errors);
+    }
+
+    #[test]
+    fn validate_topology_two_tris() {
+        let positions = vec![
+            Vec3::new(0.0, 0.0, 0.0),
+            Vec3::new(1.0, 0.0, 0.0),
+            Vec3::new(0.5, 1.0, 0.0),
+            Vec3::new(1.5, 1.0, 0.0),
+        ];
+        let normals = vec![Vec3::Z; 4];
+        let uvs = vec![Vec2::ZERO; 4];
+        let indices = vec![0, 1, 2, 1, 3, 2];
+        let mesh = EditMesh::from_triangles(&positions, &normals, &uvs, &indices);
+        let errors = mesh.validate_topology();
+        assert!(errors.is_empty(), "Topology errors: {:?}", errors);
+    }
+
+    #[test]
+    fn boundary_detection_single_tri() {
+        let positions = vec![
+            Vec3::new(0.0, 0.0, 0.0),
+            Vec3::new(1.0, 0.0, 0.0),
+            Vec3::new(0.0, 1.0, 0.0),
+        ];
+        let normals = vec![Vec3::Z; 3];
+        let uvs = vec![Vec2::ZERO; 3];
+        let indices = vec![0, 1, 2];
+        let mesh = EditMesh::from_triangles(&positions, &normals, &uvs, &indices);
+        // A single triangle has 3 boundary edges.
+        assert!(mesh.has_boundary());
+        assert_eq!(mesh.boundary_edges().len(), 3);
+    }
+
+    #[test]
+    fn half_edge_is_boundary() {
+        let he = HalfEdge::new();
+        assert!(he.is_boundary());
+    }
+
+    #[test]
+    fn empty_mesh_default() {
+        let mesh = EditMesh::default();
+        assert_eq!(mesh.vertex_count(), 0);
+        assert_eq!(mesh.face_count(), 0);
+        assert_eq!(mesh.edge_count(), 0);
+        assert!(!mesh.has_boundary());
+    }
+
+    #[test]
+    fn add_face_creates_valid_loop() {
+        let mut mesh = EditMesh::new();
+        let v0 = mesh.add_vertex(Vec3::ZERO, Vec3::Z, Vec2::ZERO);
+        let v1 = mesh.add_vertex(Vec3::X, Vec3::Z, Vec2::X);
+        let v2 = mesh.add_vertex(Vec3::Y, Vec3::Z, Vec2::Y);
+        mesh.add_face(&[v0, v1, v2]);
+
+        assert_eq!(mesh.face_count(), 1);
+        let verts: Vec<VertexId> = mesh.iter_face_vertices(0).collect();
+        assert_eq!(verts, vec![v0, v1, v2]);
+
+        let errors = mesh.validate_topology();
+        assert!(errors.is_empty(), "Topology errors: {:?}", errors);
+    }
+
+    #[test]
+    fn add_face_quad() {
+        let mut mesh = EditMesh::new();
+        let v0 = mesh.add_vertex(Vec3::new(0.0, 0.0, 0.0), Vec3::Y, Vec2::ZERO);
+        let v1 = mesh.add_vertex(Vec3::new(1.0, 0.0, 0.0), Vec3::Y, Vec2::ZERO);
+        let v2 = mesh.add_vertex(Vec3::new(1.0, 0.0, 1.0), Vec3::Y, Vec2::ZERO);
+        let v3 = mesh.add_vertex(Vec3::new(0.0, 0.0, 1.0), Vec3::Y, Vec2::ZERO);
+        mesh.add_face(&[v0, v1, v2, v3]);
+
+        let verts: Vec<VertexId> = mesh.iter_face_vertices(0).collect();
+        assert_eq!(verts.len(), 4);
+    }
+
+    #[test]
+    fn link_twins_after_add_face() {
+        let mut mesh = EditMesh::new();
+        let v0 = mesh.add_vertex(Vec3::ZERO, Vec3::Z, Vec2::ZERO);
+        let v1 = mesh.add_vertex(Vec3::X, Vec3::Z, Vec2::X);
+        let v2 = mesh.add_vertex(Vec3::Y, Vec3::Z, Vec2::Y);
+        let v3 = mesh.add_vertex(Vec3::new(1.0, 1.0, 0.0), Vec3::Z, Vec2::ONE);
+        mesh.add_face(&[v0, v1, v2]);
+        mesh.add_face(&[v1, v3, v2]);
+        mesh.link_twins();
+
+        let twin_count = mesh
+            .half_edges
+            .iter()
+            .filter(|he| he.twin != INVALID_ID)
+            .count();
+        assert_eq!(twin_count, 2, "Expected exactly one twin pair (2 linked half-edges)");
+    }
+
+    #[test]
+    fn next_prev_consistency() {
+        let positions = vec![
+            Vec3::new(0.0, 0.0, 0.0),
+            Vec3::new(1.0, 0.0, 0.0),
+            Vec3::new(0.0, 1.0, 0.0),
+        ];
+        let normals = vec![Vec3::Z; 3];
+        let uvs = vec![Vec2::ZERO; 3];
+        let indices = vec![0, 1, 2];
+        let mesh = EditMesh::from_triangles(&positions, &normals, &uvs, &indices);
+
+        for (i, he) in mesh.half_edges.iter().enumerate() {
+            if he.next != INVALID_ID {
+                assert_eq!(
+                    mesh.half_edges[he.next].prev, i,
+                    "next/prev mismatch at half-edge {i}"
+                );
+            }
+        }
     }
 }

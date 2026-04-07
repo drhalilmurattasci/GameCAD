@@ -18,6 +18,7 @@ pub enum TaskStatus {
 }
 
 impl TaskStatus {
+    #[inline]
     pub fn label(self) -> &'static str {
         match self {
             Self::Queued => "Queued",
@@ -27,8 +28,20 @@ impl TaskStatus {
         }
     }
 
+    #[inline]
     pub fn is_terminal(self) -> bool {
         matches!(self, Self::Completed | Self::Failed)
+    }
+
+    /// Returns the badge background color for this status.
+    #[inline]
+    pub fn badge_color(self, colors: &ThemeColors) -> egui::Color32 {
+        match self {
+            Self::Queued => colors.text_dim,
+            Self::Running => colors.accent,
+            Self::Completed => colors.success,
+            Self::Failed => colors.error,
+        }
     }
 }
 
@@ -54,9 +67,17 @@ impl AgentTask {
         }
     }
 
+    /// Sets the progress, clamping to [0.0, 1.0].
+    #[inline]
+    pub fn set_progress(&mut self, progress: f32) {
+        self.progress = progress.clamp(0.0, 1.0);
+    }
+
     /// Draw this task's progress UI.
-    pub fn show(&self, ui: &mut Ui) {
-        let colors = ThemeColors::dark_default();
+    ///
+    /// `colors` should come from `ThemeManager::current_theme()`.
+    pub fn show(&self, ui: &mut Ui, colors: &ThemeColors) {
+        let progress = self.progress.clamp(0.0, 1.0);
 
         ui.group(|ui| {
             ui.set_min_width(280.0);
@@ -70,25 +91,27 @@ impl AgentTask {
                 );
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    let (badge_color, badge_text_color) = match self.status {
-                        TaskStatus::Queued => (colors.text_dim, colors.background),
-                        TaskStatus::Running => (colors.accent, colors.background),
-                        TaskStatus::Completed => (colors.success, colors.background),
-                        TaskStatus::Failed => (colors.error, colors.background),
-                    };
+                    let badge_bg = self.status.badge_color(colors);
+                    let badge_text_color = colors.background;
 
-                    let label = egui::RichText::new(self.status.label())
-                        .size(11.0)
-                        .color(badge_text_color);
-                    let response =
-                        ui.add(egui::Label::new(label));
-                    let rect = response.rect.expand(3.0);
-                    ui.painter().rect_filled(rect, 3.0, badge_color);
-                    // Re-draw the text on top of the badge background
+                    // Allocate space for the badge, draw background first, text on top.
+                    let badge_text = self.status.label();
+                    let galley = ui.painter().layout_no_wrap(
+                        badge_text.to_owned(),
+                        egui::FontId::proportional(11.0),
+                        badge_text_color,
+                    );
+                    let text_size = galley.rect.size();
+                    let badge_size = text_size + Vec2::new(8.0, 4.0);
+                    let (badge_rect, _) = ui.allocate_exact_size(badge_size, egui::Sense::hover());
+
+                    // Badge background
+                    ui.painter().rect_filled(badge_rect, 3.0, badge_bg);
+                    // Badge text (centered on top of background)
                     ui.painter().text(
-                        rect.center(),
+                        badge_rect.center(),
                         egui::Align2::CENTER_CENTER,
-                        self.status.label(),
+                        badge_text,
                         egui::FontId::proportional(11.0),
                         badge_text_color,
                     );
@@ -107,6 +130,7 @@ impl AgentTask {
             // Progress bar
             let progress_color = match self.status {
                 TaskStatus::Failed => colors.error,
+                TaskStatus::Completed => colors.success,
                 _ => colors.accent,
             };
 
@@ -115,14 +139,21 @@ impl AgentTask {
 
             // Track background
             ui.painter()
-                .rect_filled(rect, 3.0, colors.surface_raised);
+                .rect_filled(rect, 3.0, colors.surface_sunken);
 
             // Filled portion
-            if self.progress > 0.0 {
+            if progress > 0.0 {
                 let mut fill_rect = rect;
-                fill_rect.set_right(rect.left() + rect.width() * self.progress.clamp(0.0, 1.0));
+                fill_rect.set_right(rect.left() + rect.width() * progress);
                 ui.painter().rect_filled(fill_rect, 3.0, progress_color);
             }
+
+            // Percentage label
+            ui.label(
+                egui::RichText::new(format!("{:.0}%", progress * 100.0))
+                    .size(10.0)
+                    .color(colors.text_dim),
+            );
 
             // Status message
             if !self.message.is_empty() {
@@ -134,6 +165,29 @@ impl AgentTask {
             }
         });
     }
+}
+
+/// Show a list of agent tasks.
+///
+/// `colors` should come from `ThemeManager::current_theme()`.
+pub fn show_task_list(ui: &mut Ui, tasks: &[AgentTask], colors: &ThemeColors) {
+    if tasks.is_empty() {
+        ui.label(
+            egui::RichText::new("No active agent tasks")
+                .size(12.0)
+                .color(colors.text_dim),
+        );
+        return;
+    }
+
+    egui::ScrollArea::vertical()
+        .auto_shrink([false, true])
+        .show(ui, |ui| {
+            for task in tasks {
+                task.show(ui, colors);
+                ui.add_space(4.0);
+            }
+        });
 }
 
 #[cfg(test)]
@@ -165,26 +219,35 @@ mod tests {
         assert_eq!(task.progress, 0.0);
         assert!(task.message.is_empty());
     }
-}
 
-/// Show a list of agent tasks.
-pub fn show_task_list(ui: &mut Ui, tasks: &[AgentTask]) {
-    if tasks.is_empty() {
-        let colors = ThemeColors::dark_default();
-        ui.label(
-            egui::RichText::new("No active agent tasks")
-                .size(12.0)
-                .color(colors.text_dim),
-        );
-        return;
+    #[test]
+    fn set_progress_clamps() {
+        let mut task = AgentTask::new("T", "D");
+        task.set_progress(1.5);
+        assert_eq!(task.progress, 1.0);
+        task.set_progress(-0.5);
+        assert_eq!(task.progress, 0.0);
+        task.set_progress(0.5);
+        assert!((task.progress - 0.5).abs() < f32::EPSILON);
     }
 
-    egui::ScrollArea::vertical()
-        .auto_shrink([false, true])
-        .show(ui, |ui| {
-            for task in tasks {
-                task.show(ui);
-                ui.add_space(4.0);
-            }
-        });
+    #[test]
+    fn badge_colors_differ_by_status() {
+        let colors = ThemeColors::dark_default();
+        let queued = TaskStatus::Queued.badge_color(&colors);
+        let running = TaskStatus::Running.badge_color(&colors);
+        let completed = TaskStatus::Completed.badge_color(&colors);
+        let failed = TaskStatus::Failed.badge_color(&colors);
+
+        assert_ne!(queued, running);
+        assert_ne!(running, completed);
+        assert_ne!(completed, failed);
+    }
+
+    #[test]
+    fn badge_colors_work_in_light_mode() {
+        let colors = ThemeColors::light_default();
+        let running = TaskStatus::Running.badge_color(&colors);
+        assert_eq!(running, colors.accent);
+    }
 }

@@ -19,6 +19,11 @@ impl Shortcut {
         Self { modifiers, key }
     }
 
+    /// Plain key with no modifiers.
+    pub const fn plain(key: Key) -> Self {
+        Self::new(Modifiers::NONE, key)
+    }
+
     /// Ctrl (or Cmd on Mac) + key.
     pub const fn ctrl(key: Key) -> Self {
         Self::new(
@@ -48,6 +53,7 @@ impl Shortcut {
     }
 
     /// Check if this shortcut was pressed this frame.
+    #[inline]
     pub fn pressed(&self, ctx: &egui::Context) -> bool {
         ctx.input(|i| i.key_pressed(self.key) && i.modifiers == self.modifiers)
     }
@@ -110,18 +116,39 @@ impl ShortcutMap {
     /// Build the default editor shortcuts.
     pub fn editor_defaults() -> Self {
         let mut map = Self::new();
+        // File operations
         map.bind("save", Shortcut::ctrl(Key::S));
+        map.bind("new_file", Shortcut::ctrl(Key::N));
+        map.bind("open_file", Shortcut::ctrl(Key::O));
+
+        // Edit operations
         map.bind("undo", Shortcut::ctrl(Key::Z));
         map.bind("redo", Shortcut::ctrl_shift(Key::Z));
         map.bind("copy", Shortcut::ctrl(Key::C));
         map.bind("paste", Shortcut::ctrl(Key::V));
         map.bind("cut", Shortcut::ctrl(Key::X));
         map.bind("select_all", Shortcut::ctrl(Key::A));
-        map.bind("delete", Shortcut::new(Modifiers::NONE, Key::Delete));
+        map.bind("delete", Shortcut::plain(Key::Delete));
+
+        // UI operations
         map.bind("command_palette", Shortcut::ctrl_shift(Key::P));
         map.bind("find", Shortcut::ctrl(Key::F));
-        map.bind("new_file", Shortcut::ctrl(Key::N));
-        map.bind("open_file", Shortcut::ctrl(Key::O));
+        map.bind("toggle_theme", Shortcut::ctrl(Key::T));
+
+        // Tab shortcuts (Ctrl+1 through Ctrl+7)
+        map.bind("tab_1", Shortcut::ctrl(Key::Num1));
+        map.bind("tab_2", Shortcut::ctrl(Key::Num2));
+        map.bind("tab_3", Shortcut::ctrl(Key::Num3));
+        map.bind("tab_4", Shortcut::ctrl(Key::Num4));
+        map.bind("tab_5", Shortcut::ctrl(Key::Num5));
+        map.bind("tab_6", Shortcut::ctrl(Key::Num6));
+        map.bind("tab_7", Shortcut::ctrl(Key::Num7));
+
+        // Gizmo mode shortcuts
+        map.bind("gizmo_translate", Shortcut::plain(Key::W));
+        map.bind("gizmo_rotate", Shortcut::plain(Key::E));
+        map.bind("gizmo_scale", Shortcut::plain(Key::R));
+
         map
     }
 }
@@ -166,6 +193,54 @@ mod tests {
         assert!(map.get("copy").is_some());
         assert!(map.get("paste").is_some());
         assert!(map.get("command_palette").is_some());
+    }
+
+    #[test]
+    fn editor_defaults_has_theme_toggle() {
+        let map = ShortcutMap::editor_defaults();
+        let shortcut = map.get("toggle_theme").expect("toggle_theme missing");
+        assert_eq!(shortcut.label(), "Ctrl+T");
+    }
+
+    #[test]
+    fn editor_defaults_has_tab_shortcuts() {
+        let map = ShortcutMap::editor_defaults();
+        for i in 1..=7 {
+            let key = format!("tab_{i}");
+            assert!(map.get(&key).is_some(), "Missing shortcut for {key}");
+        }
+    }
+
+    #[test]
+    fn editor_defaults_has_gizmo_shortcuts() {
+        let map = ShortcutMap::editor_defaults();
+        assert!(map.get("gizmo_translate").is_some());
+        assert!(map.get("gizmo_rotate").is_some());
+        assert!(map.get("gizmo_scale").is_some());
+    }
+
+    #[test]
+    fn shortcut_label_plain_key() {
+        let s = Shortcut::plain(Key::Delete);
+        assert_eq!(s.label(), "Del");
+    }
+
+    #[test]
+    fn shortcut_rebind_replaces_old() {
+        let mut map = ShortcutMap::new();
+        map.bind("save", Shortcut::ctrl(Key::S));
+        map.bind("save", Shortcut::ctrl_shift(Key::S));
+        let s = map.get("save").unwrap();
+        assert_eq!(s.label(), "Ctrl+Shift+S");
+    }
+
+    #[test]
+    fn shortcut_equality() {
+        let a = Shortcut::ctrl(Key::S);
+        let b = Shortcut::ctrl(Key::S);
+        assert_eq!(a, b);
+        let c = Shortcut::ctrl(Key::A);
+        assert_ne!(a, c);
     }
 }
 

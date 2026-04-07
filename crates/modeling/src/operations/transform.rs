@@ -5,6 +5,7 @@ use glam::Vec3;
 use crate::half_edge::{EditMesh, VertexId};
 
 /// Translate the given vertices by an offset.
+#[inline]
 pub fn translate_vertices(mesh: &mut EditMesh, vertex_ids: &[VertexId], offset: Vec3) {
     for &vid in vertex_ids {
         if vid < mesh.vertices.len() {

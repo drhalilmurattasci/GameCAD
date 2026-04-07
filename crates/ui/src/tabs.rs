@@ -32,6 +32,7 @@ impl WorkspaceTab {
     ];
 
     /// Human-readable label.
+    #[inline]
     pub fn label(self) -> &'static str {
         match self {
             Self::MapEditor => "Map Editor",
@@ -43,28 +44,33 @@ impl WorkspaceTab {
             Self::Physics => "Physics",
         }
     }
-}
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn workspace_tab_all_has_correct_count() {
-        assert_eq!(WorkspaceTab::ALL.len(), 7);
-    }
-
-    #[test]
-    fn workspace_tab_labels_non_empty() {
-        for tab in WorkspaceTab::ALL {
-            assert!(!tab.label().is_empty());
+    /// Icon character for each tab (Unicode symbols).
+    #[inline]
+    pub fn icon(self) -> &'static str {
+        match self {
+            Self::MapEditor => "\u{1F5FA}",      // world map
+            Self::Gameplay => "\u{1F3AE}",        // game controller
+            Self::ObjectEditor => "\u{1F4E6}",    // package / object
+            Self::ScriptEditor => "\u{1F4DC}",    // scroll / script
+            Self::MaterialEditor => "\u{1F3A8}",  // palette
+            Self::Animation => "\u{1F3AC}",       // clapper board
+            Self::Physics => "\u{2699}",          // gear
         }
     }
 
-    #[test]
-    fn tab_bar_active_default() {
-        let bar = TabBar::new(WorkspaceTab::MapEditor);
-        assert_eq!(bar.active(), WorkspaceTab::MapEditor);
+    /// Keyboard shortcut hint (Ctrl+1 through Ctrl+7).
+    #[inline]
+    pub fn shortcut_hint(self) -> &'static str {
+        match self {
+            Self::MapEditor => "Ctrl+1",
+            Self::Gameplay => "Ctrl+2",
+            Self::ObjectEditor => "Ctrl+3",
+            Self::ScriptEditor => "Ctrl+4",
+            Self::MaterialEditor => "Ctrl+5",
+            Self::Animation => "Ctrl+6",
+            Self::Physics => "Ctrl+7",
+        }
     }
 }
 
@@ -80,13 +86,16 @@ impl TabBar {
     }
 
     /// Returns the currently active tab.
+    #[inline]
     pub fn active(&self) -> WorkspaceTab {
         self.active
     }
 
     /// Draw the tab bar. Returns `Some(tab)` if the user clicked a different tab.
-    pub fn show(&mut self, ui: &mut Ui) -> Option<WorkspaceTab> {
-        let colors = ThemeColors::dark_default();
+    ///
+    /// `colors` should be obtained from `ThemeManager::current_theme()` so that
+    /// the tab bar adapts to both dark and light themes.
+    pub fn show(&mut self, ui: &mut Ui, colors: &ThemeColors) -> Option<WorkspaceTab> {
         let mut clicked = None;
 
         ui.horizontal(|ui| {
@@ -100,7 +109,7 @@ impl TabBar {
                     colors.text_dim
                 };
 
-                let response = ui.allocate_ui(Vec2::new(120.0, 32.0), |ui| {
+                let response = ui.allocate_ui(Vec2::new(130.0, 32.0), |ui| {
                     let rect = ui.max_rect();
 
                     // Background hover highlight
@@ -109,12 +118,13 @@ impl TabBar {
                             .rect_filled(rect, 0.0, colors.surface_raised);
                     }
 
-                    // Label
+                    // Icon + Label
+                    let display_text = format!("{} {}", tab.icon(), tab.label());
                     let text_pos = rect.center()
                         - Vec2::new(
                             ui.fonts(|f| {
                                 f.layout_no_wrap(
-                                    tab.label().to_owned(),
+                                    display_text.clone(),
                                     egui::FontId::proportional(13.0),
                                     text_color,
                                 )
@@ -126,7 +136,7 @@ impl TabBar {
                     ui.painter().text(
                         text_pos,
                         egui::Align2::LEFT_TOP,
-                        tab.label(),
+                        &display_text,
                         egui::FontId::proportional(13.0),
                         text_color,
                     );
@@ -140,8 +150,9 @@ impl TabBar {
                         ui.painter().rect_filled(underline_rect, 1.5, colors.accent);
                     }
 
-                    // Click detection
-                    ui.interact(rect, ui.id().with(tab.label()), egui::Sense::click())
+                    // Click detection with tooltip showing shortcut
+                    let response = ui.interact(rect, ui.id().with(tab.label()), egui::Sense::click());
+                    response.on_hover_text(format!("{} ({})", tab.label(), tab.shortcut_hint()))
                 });
 
                 if response.inner.clicked() && !is_active {
@@ -165,5 +176,68 @@ impl TabBar {
         }
 
         clicked
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn workspace_tab_all_has_correct_count() {
+        assert_eq!(WorkspaceTab::ALL.len(), 7);
+    }
+
+    #[test]
+    fn workspace_tab_labels_non_empty() {
+        for tab in WorkspaceTab::ALL {
+            assert!(!tab.label().is_empty());
+        }
+    }
+
+    #[test]
+    fn workspace_tab_icons_non_empty() {
+        for tab in WorkspaceTab::ALL {
+            assert!(!tab.icon().is_empty());
+        }
+    }
+
+    #[test]
+    fn workspace_tab_shortcut_hints_non_empty() {
+        for tab in WorkspaceTab::ALL {
+            let hint = tab.shortcut_hint();
+            assert!(!hint.is_empty());
+            assert!(hint.starts_with("Ctrl+"), "Shortcut should start with Ctrl+, got: {hint}");
+        }
+    }
+
+    #[test]
+    fn workspace_tab_unique_labels() {
+        let labels: Vec<&str> = WorkspaceTab::ALL.iter().map(|t| t.label()).collect();
+        for (i, a) in labels.iter().enumerate() {
+            for (j, b) in labels.iter().enumerate() {
+                if i != j {
+                    assert_ne!(a, b, "Tabs {i} and {j} have duplicate labels");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn workspace_tab_unique_shortcuts() {
+        let hints: Vec<&str> = WorkspaceTab::ALL.iter().map(|t| t.shortcut_hint()).collect();
+        for (i, a) in hints.iter().enumerate() {
+            for (j, b) in hints.iter().enumerate() {
+                if i != j {
+                    assert_ne!(a, b, "Tabs {i} and {j} have duplicate shortcuts");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn tab_bar_active_default() {
+        let bar = TabBar::new(WorkspaceTab::MapEditor);
+        assert_eq!(bar.active(), WorkspaceTab::MapEditor);
     }
 }

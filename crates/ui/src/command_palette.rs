@@ -60,6 +60,8 @@ fn filter_indices(commands: &[PaletteCommand], search: &str) -> Vec<usize> {
 pub struct CommandPalette {
     open: bool,
     search: String,
+    /// Tracks the previous search string to detect changes and reset selection.
+    prev_search: String,
     commands: Vec<PaletteCommand>,
     selected_index: usize,
 }
@@ -70,12 +72,14 @@ impl CommandPalette {
         Self {
             open: false,
             search: String::new(),
+            prev_search: String::new(),
             commands: Vec::new(),
             selected_index: 0,
         }
     }
 
     /// Returns `true` if the palette overlay is currently visible.
+    #[inline]
     pub fn is_open(&self) -> bool {
         self.open
     }
@@ -85,6 +89,7 @@ impl CommandPalette {
         self.open = !self.open;
         if self.open {
             self.search.clear();
+            self.prev_search.clear();
             self.selected_index = 0;
         }
     }
@@ -93,6 +98,7 @@ impl CommandPalette {
     pub fn open(&mut self) {
         self.open = true;
         self.search.clear();
+        self.prev_search.clear();
         self.selected_index = 0;
     }
 
@@ -106,13 +112,20 @@ impl CommandPalette {
         self.commands.push(command);
     }
 
+    /// Returns the number of registered commands.
+    #[inline]
+    pub fn command_count(&self) -> usize {
+        self.commands.len()
+    }
+
     /// Show the command palette overlay. Returns `Some(callback)` if a command was selected.
-    pub fn show(&mut self, ctx: &Context) -> Option<fn()> {
+    ///
+    /// `colors` should come from `ThemeManager::current_theme()`.
+    pub fn show(&mut self, ctx: &Context, colors: &ThemeColors) -> Option<fn()> {
         if !self.open {
             return None;
         }
 
-        let colors = ThemeColors::dark_default();
         let mut result: Option<fn()> = None;
         let mut should_close = false;
 
@@ -151,6 +164,12 @@ impl CommandPalette {
 
                         ui.add_space(4.0);
 
+                        // Reset selection index when the search text changes
+                        if self.search != self.prev_search {
+                            self.selected_index = 0;
+                            self.prev_search.clone_from(&self.search);
+                        }
+
                         // Filtered indices (no borrow on self)
                         let filtered_indices = filter_indices(&self.commands, &self.search);
                         let count = filtered_indices.len();
@@ -167,12 +186,13 @@ impl CommandPalette {
                         }
 
                         if !filtered_indices.is_empty() {
-                            if up && self.selected_index > 0 {
-                                self.selected_index -= 1;
+                            if up {
+                                self.selected_index = self.selected_index.saturating_sub(1);
                             }
                             if down && self.selected_index + 1 < count {
                                 self.selected_index += 1;
                             }
+                            // Clamp in case count shrank
                             self.selected_index =
                                 self.selected_index.min(count.saturating_sub(1));
 
@@ -182,6 +202,8 @@ impl CommandPalette {
                                 should_close = true;
                                 return;
                             }
+                        } else {
+                            self.selected_index = 0;
                         }
 
                         // Command list
@@ -305,6 +327,20 @@ mod tests {
     }
 
     #[test]
+    fn filter_case_insensitive_upper() {
+        let cmds = sample_commands();
+        let indices = filter_indices(&cmds, "SAVE");
+        assert_eq!(indices, vec![0, 2]);
+    }
+
+    #[test]
+    fn filter_partial_match() {
+        let cmds = sample_commands();
+        let indices = filter_indices(&cmds, "fil");
+        assert_eq!(indices, vec![0, 1]); // "Save File", "Open File"
+    }
+
+    #[test]
     fn palette_toggle_open_close() {
         let mut palette = CommandPalette::new();
         assert!(!palette.is_open());
@@ -315,11 +351,21 @@ mod tests {
     }
 
     #[test]
-    fn palette_register_and_show_returns_none_when_closed() {
+    fn palette_open_resets_search() {
         let mut palette = CommandPalette::new();
+        palette.search = "old query".into();
+        palette.selected_index = 5;
+        palette.open();
+        assert!(palette.search.is_empty());
+        assert_eq!(palette.selected_index, 0);
+    }
+
+    #[test]
+    fn palette_register_and_count() {
+        let mut palette = CommandPalette::new();
+        assert_eq!(palette.command_count(), 0);
         palette.register(PaletteCommand::new("test", "Test", noop as fn()));
-        // show() without egui context: just verify it returns None when closed
-        assert!(!palette.is_open());
+        assert_eq!(palette.command_count(), 1);
     }
 
     #[test]
@@ -327,5 +373,14 @@ mod tests {
         let cmd = PaletteCommand::new("save", "Save", noop as fn())
             .with_shortcut("Ctrl+S");
         assert_eq!(cmd.shortcut.as_deref(), Some("Ctrl+S"));
+    }
+
+    #[test]
+    fn palette_close_sets_open_false() {
+        let mut palette = CommandPalette::new();
+        palette.open();
+        assert!(palette.is_open());
+        palette.close();
+        assert!(!palette.is_open());
     }
 }

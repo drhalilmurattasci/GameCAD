@@ -122,4 +122,61 @@ mod tests {
         assert!(exts.contains(&"lua"));
         assert!(exts.contains(&"wgsl"));
     }
+
+    #[test]
+    fn all_supported_extensions_are_recognized() {
+        for ext in supported_extensions() {
+            assert!(
+                AssetType::from_extension(ext).is_some(),
+                "Extension '{ext}' is listed as supported but not recognized by AssetType"
+            );
+        }
+    }
+
+    #[test]
+    fn import_unsupported_file_errors() {
+        let dir = std::env::temp_dir().join("forge_import_test");
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("readme.txt");
+        std::fs::write(&path, b"hello").unwrap();
+
+        let mut db = AssetDatabase::new();
+        let result = import_file(&path, &mut db);
+        assert!(result.is_err());
+
+        let _ = std::fs::remove_file(&path);
+        let _ = std::fs::remove_dir(&dir);
+    }
+
+    #[test]
+    fn import_file_registers_in_database() {
+        let dir = std::env::temp_dir().join("forge_import_test_register");
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("test.lua");
+        std::fs::write(&path, b"print('hello')").unwrap();
+
+        let mut db = AssetDatabase::new();
+        let result = import_file(&path, &mut db).unwrap();
+        assert_eq!(result.asset_type, AssetType::Script);
+        assert!(db.get_by_id(result.asset_id).is_some());
+
+        // Clean up.
+        let _ = std::fs::remove_file(&path);
+        let _ = std::fs::remove_file(crate::metadata::AssetMetadata::meta_path(&path));
+        let _ = std::fs::remove_dir(&dir);
+    }
+
+    #[test]
+    fn import_file_no_extension_errors() {
+        let dir = std::env::temp_dir().join("forge_import_test_noext");
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("Makefile");
+        std::fs::write(&path, b"all:").unwrap();
+
+        let mut db = AssetDatabase::new();
+        assert!(import_file(&path, &mut db).is_err());
+
+        let _ = std::fs::remove_file(&path);
+        let _ = std::fs::remove_dir(&dir);
+    }
 }

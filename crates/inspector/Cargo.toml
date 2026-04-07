@@ -9,3 +9,6 @@ forge_scene = { path = "../scene", package = "scene" }
 egui = { workspace = true }
 glam = { workspace = true }
 serde = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }

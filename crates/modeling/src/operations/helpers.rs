@@ -5,6 +5,7 @@ use glam::Vec3;
 use crate::half_edge::{EditMesh, Face, FaceId, HalfEdge, HalfEdgeId, VertexId, INVALID_ID};
 
 /// Find the half-edge from v0 to v1 in the given face.
+#[inline]
 pub(crate) fn find_half_edge(
     mesh: &EditMesh,
     v0: VertexId,

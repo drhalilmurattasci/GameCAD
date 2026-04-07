@@ -25,6 +25,7 @@ impl AssetType {
     /// Attempts to detect the asset type from a file extension.
     ///
     /// Returns `None` if the extension is not recognized.
+    #[inline]
     pub fn from_extension(ext: &str) -> Option<Self> {
         match ext.to_ascii_lowercase().as_str() {
             // Mesh formats
@@ -58,6 +59,7 @@ impl AssetType {
     }
 
     /// Detects the asset type from a file path by inspecting its extension.
+    #[inline]
     pub fn from_path(path: &Path) -> Option<Self> {
         path.extension()
             .and_then(|ext| ext.to_str())
@@ -65,6 +67,7 @@ impl AssetType {
     }
 
     /// Returns a single-character icon suitable for UI display.
+    #[inline]
     pub fn icon_char(&self) -> char {
         match self {
             Self::Mesh => '\u{25B2}',      // triangle
@@ -83,6 +86,7 @@ impl AssetType {
     }
 
     /// Human-readable label for the asset type.
+    #[inline]
     pub fn label(&self) -> &'static str {
         match self {
             Self::Mesh => "Mesh",
@@ -106,25 +110,172 @@ mod tests {
     use super::*;
 
     #[test]
-    fn detect_mesh_extension() {
-        assert_eq!(AssetType::from_extension("glb"), Some(AssetType::Mesh));
-        assert_eq!(AssetType::from_extension("GLTF"), Some(AssetType::Mesh));
+    fn detect_mesh_extensions() {
+        for ext in &["gltf", "glb", "obj", "fbx", "stl", "ply"] {
+            assert_eq!(
+                AssetType::from_extension(ext),
+                Some(AssetType::Mesh),
+                "Failed for extension: {ext}"
+            );
+        }
     }
 
     #[test]
-    fn detect_texture_extension() {
-        assert_eq!(AssetType::from_extension("png"), Some(AssetType::Texture));
-        assert_eq!(AssetType::from_extension("jpg"), Some(AssetType::Texture));
+    fn detect_mesh_case_insensitive() {
+        assert_eq!(AssetType::from_extension("GLTF"), Some(AssetType::Mesh));
+        assert_eq!(AssetType::from_extension("Glb"), Some(AssetType::Mesh));
+    }
+
+    #[test]
+    fn detect_texture_extensions() {
+        for ext in &["png", "jpg", "jpeg", "bmp", "tga", "webp", "dds", "ktx2"] {
+            assert_eq!(
+                AssetType::from_extension(ext),
+                Some(AssetType::Texture),
+                "Failed for extension: {ext}"
+            );
+        }
+    }
+
+    #[test]
+    fn detect_material_extensions() {
+        assert_eq!(AssetType::from_extension("mat"), Some(AssetType::Material));
+        assert_eq!(
+            AssetType::from_extension("material"),
+            Some(AssetType::Material)
+        );
+    }
+
+    #[test]
+    fn detect_scene_extensions() {
+        assert_eq!(AssetType::from_extension("scene"), Some(AssetType::Scene));
+        assert_eq!(AssetType::from_extension("scn"), Some(AssetType::Scene));
+    }
+
+    #[test]
+    fn detect_hdri_extensions() {
+        assert_eq!(AssetType::from_extension("hdr"), Some(AssetType::Hdri));
+        assert_eq!(AssetType::from_extension("exr"), Some(AssetType::Hdri));
+    }
+
+    #[test]
+    fn detect_animation() {
+        assert_eq!(
+            AssetType::from_extension("anim"),
+            Some(AssetType::Animation)
+        );
+    }
+
+    #[test]
+    fn detect_audio_extensions() {
+        for ext in &["wav", "ogg", "mp3", "flac"] {
+            assert_eq!(
+                AssetType::from_extension(ext),
+                Some(AssetType::Audio),
+                "Failed for extension: {ext}"
+            );
+        }
+    }
+
+    #[test]
+    fn detect_script_extensions() {
+        assert_eq!(AssetType::from_extension("lua"), Some(AssetType::Script));
+        assert_eq!(AssetType::from_extension("luau"), Some(AssetType::Script));
+    }
+
+    #[test]
+    fn detect_font_extensions() {
+        for ext in &["ttf", "otf", "woff", "woff2"] {
+            assert_eq!(
+                AssetType::from_extension(ext),
+                Some(AssetType::Font),
+                "Failed for extension: {ext}"
+            );
+        }
+    }
+
+    #[test]
+    fn detect_shader_extensions() {
+        for ext in &["wgsl", "glsl", "vert", "frag", "comp", "hlsl"] {
+            assert_eq!(
+                AssetType::from_extension(ext),
+                Some(AssetType::Shader),
+                "Failed for extension: {ext}"
+            );
+        }
+    }
+
+    #[test]
+    fn detect_theme() {
+        assert_eq!(AssetType::from_extension("theme"), Some(AssetType::Theme));
+    }
+
+    #[test]
+    fn detect_prefab() {
+        assert_eq!(AssetType::from_extension("prefab"), Some(AssetType::Prefab));
     }
 
     #[test]
     fn unknown_extension_returns_none() {
         assert_eq!(AssetType::from_extension("xyz"), None);
+        assert_eq!(AssetType::from_extension(""), None);
+        assert_eq!(AssetType::from_extension("doc"), None);
     }
 
     #[test]
     fn from_path_works() {
-        let path = Path::new("/assets/model.glb");
-        assert_eq!(AssetType::from_path(path), Some(AssetType::Mesh));
+        assert_eq!(
+            AssetType::from_path(Path::new("/assets/model.glb")),
+            Some(AssetType::Mesh)
+        );
+    }
+
+    #[test]
+    fn from_path_no_extension() {
+        assert_eq!(AssetType::from_path(Path::new("/assets/Makefile")), None);
+    }
+
+    #[test]
+    fn labels_all_non_empty() {
+        let types = [
+            AssetType::Mesh,
+            AssetType::Texture,
+            AssetType::Material,
+            AssetType::Scene,
+            AssetType::Hdri,
+            AssetType::Animation,
+            AssetType::Audio,
+            AssetType::Script,
+            AssetType::Font,
+            AssetType::Shader,
+            AssetType::Theme,
+            AssetType::Prefab,
+        ];
+        for t in &types {
+            assert!(!t.label().is_empty(), "Empty label for {:?}", t);
+        }
+    }
+
+    #[test]
+    fn icon_chars_all_unique() {
+        let types = [
+            AssetType::Mesh,
+            AssetType::Texture,
+            AssetType::Material,
+            AssetType::Scene,
+            AssetType::Hdri,
+            AssetType::Animation,
+            AssetType::Audio,
+            AssetType::Script,
+            AssetType::Font,
+            AssetType::Shader,
+            AssetType::Theme,
+            AssetType::Prefab,
+        ];
+        let mut chars: Vec<char> = types.iter().map(|t| t.icon_char()).collect();
+        let len = chars.len();
+        chars.sort();
+        chars.dedup();
+        assert_eq!(chars.len(), len, "Duplicate icon_char found");
     }
 }

@@ -403,6 +403,7 @@ impl PipelineCache {
     }
 
     /// Invalidate all cached pipelines (e.g. on surface format change).
+    #[inline]
     pub fn clear(&mut self) {
         self.pipelines.clear();
         self.grid_pipeline = None;

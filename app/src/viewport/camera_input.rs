@@ -147,7 +147,8 @@ impl ForgeEditorApp {
                         self.transforms[sel][2] += move_vec.z;
                     } else {
                         // Default: camera-right + camera-forward (XZ plane)
-                        let move_vec = cam_right * delta.x * speed + cam_fwd * delta.y * speed;
+                        // Negate delta.y: mouse-forward (negative y) = move toward camera target
+                        let move_vec = cam_right * delta.x * speed + cam_fwd * (-delta.y) * speed;
                         self.transforms[sel][0] += move_vec.x;
                         self.transforms[sel][1] += move_vec.y;
                         self.transforms[sel][2] += move_vec.z;

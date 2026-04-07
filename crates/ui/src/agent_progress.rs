@@ -11,13 +11,18 @@ use crate::theme::ThemeColors;
 /// Status of an agent task.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum TaskStatus {
+    /// Waiting to start.
     Queued,
+    /// Currently executing.
     Running,
+    /// Finished successfully.
     Completed,
+    /// Finished with an error.
     Failed,
 }
 
 impl TaskStatus {
+    /// Returns a human-readable label for this status.
     #[inline]
     pub fn label(self) -> &'static str {
         match self {
@@ -28,6 +33,7 @@ impl TaskStatus {
         }
     }
 
+    /// Returns `true` if the task has finished (completed or failed).
     #[inline]
     pub fn is_terminal(self) -> bool {
         matches!(self, Self::Completed | Self::Failed)
@@ -48,15 +54,20 @@ impl TaskStatus {
 /// Represents a single agent task with progress tracking.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct AgentTask {
+    /// Short task name.
     pub name: String,
+    /// Longer description of what the task does.
     pub description: String,
+    /// Current execution status.
     pub status: TaskStatus,
     /// Progress from 0.0 to 1.0.
     pub progress: f32,
+    /// Optional status message or error text.
     pub message: String,
 }
 
 impl AgentTask {
+    /// Creates a new task in the [`TaskStatus::Queued`] state.
     pub fn new(name: impl Into<String>, description: impl Into<String>) -> Self {
         Self {
             name: name.into(),

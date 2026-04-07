@@ -10,9 +10,13 @@ use crate::theme::ThemeColors;
 
 /// A single toolbar button with a text label, tooltip, and enabled state.
 pub struct ToolbarButton {
+    /// Display text for the button.
     pub label: String,
+    /// Hover tooltip text.
     pub tooltip: String,
+    /// Whether the button is clickable.
     pub enabled: bool,
+    /// Whether the button is in an active/pressed state.
     pub active: bool,
 }
 

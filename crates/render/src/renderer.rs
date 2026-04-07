@@ -14,12 +14,19 @@ use crate::vertex::GpuMesh;
 
 /// Orchestrates a full rendering frame: clear, depth, main pass, grid, present.
 pub struct Renderer {
+    /// GPU-side camera uniform buffer.
     pub camera_buffer: CameraBuffer,
+    /// GPU-side light uniform buffer.
     pub lights_buffer: LightsBuffer,
+    /// Cached render pipelines.
     pub pipeline_cache: PipelineCache,
+    /// Depth attachment texture.
     pub depth_texture: Texture,
+    /// Active render style (solid, wireframe, etc.).
     pub render_style: RenderStyle,
+    /// Whether the viewport grid is visible.
     pub show_grid: bool,
+    /// Background clear color.
     pub clear_color: wgpu::Color,
     surface_format: wgpu::TextureFormat,
     width: u32,

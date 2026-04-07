@@ -10,11 +10,14 @@ use indexmap::IndexMap;
 /// A keyboard shortcut (modifier keys + a main key).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Shortcut {
+    /// Modifier keys (Ctrl, Shift, Alt, etc.).
     pub modifiers: Modifiers,
+    /// The main key.
     pub key: Key,
 }
 
 impl Shortcut {
+    /// Creates a shortcut with the given modifiers and key.
     pub const fn new(modifiers: Modifiers, key: Key) -> Self {
         Self { modifiers, key }
     }

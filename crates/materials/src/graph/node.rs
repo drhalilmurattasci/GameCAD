@@ -12,18 +12,31 @@ use super::types::{NodeId, Pin, PinDirection, PinId, PinType};
 /// The functional type of a material graph node.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum NodeKind {
+    /// Final PBR output node (albedo, metallic, roughness, etc.).
     PbrOutput,
+    /// Samples a 2D texture.
     TextureSample,
+    /// Outputs a constant RGBA color.
     ConstantColor,
+    /// Outputs a constant scalar float.
     ConstantFloat,
+    /// Outputs a constant 3-component vector.
     ConstantVec3,
+    /// Adds two values.
     MathAdd,
+    /// Multiplies two values.
     MathMultiply,
+    /// Blends two values using a factor.
     MathMix,
+    /// Linear interpolation between two values.
     MathLerp,
+    /// Fresnel (view-angle) effect.
     Fresnel,
+    /// Transforms a normal map sample to tangent space.
     NormalMap,
+    /// Procedural Perlin noise generator.
     NoisePerlin,
+    /// Procedural Voronoi noise generator.
     NoiseVoronoi,
 }
 

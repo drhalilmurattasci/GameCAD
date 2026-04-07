@@ -74,17 +74,17 @@ impl ForgeEditorApp {
                 let proj = self.orbit_camera.projection_matrix(aspect);
                 let vp = proj * view;
 
-                // ---- Perspective ground grid (toggle with show_grid) ----
+                // ---- Perspective ground grid (toggle with settings.grid.visible) ----
                 let wire_c = self.theme_manager.wireframe_color();
-                if self.show_grid {
+                if self.settings.grid.visible {
                     let grid_c = self.theme_manager.grid_color();
                     let grid_mc = self.theme_manager.grid_major_color();
-                    Self::draw_perspective_grid(&painter, &vp, &rect, grid_c, grid_mc, self.grid_size);
+                    Self::draw_perspective_grid(&painter, &vp, &rect, grid_c, grid_mc, self.settings.grid.size);
                 }
 
                 // ---- Working height plane indicator ----
-                if self.work_height.abs() > 0.01 {
-                    let h = self.work_height;
+                if self.settings.height.level.abs() > 0.01 {
+                    let h = self.settings.height.level;
                     let extent = 10.0_f32;
                     // Height plane fill color (reserved for future quad rendering)
                     let h_stroke = Stroke::new(1.0, Color32::from_rgba_premultiplied(0x4e, 0xff, 0x93, 80));
@@ -125,9 +125,9 @@ impl ForgeEditorApp {
                 }
 
                 // Active tab + render style + grid/snap status overlay
-                let grid_status = if self.show_grid { "Grid:ON" } else { "Grid:OFF" };
-                let snap_status = if self.snap_enabled {
-                    format!("Snap:{:.2}", self.snap_size)
+                let grid_status = if self.settings.grid.visible { "Grid:ON" } else { "Grid:OFF" };
+                let snap_status = if self.settings.snap.enabled {
+                    format!("Snap:{:.2}", self.settings.snap.size)
                 } else {
                     "Snap:OFF".to_string()
                 };
@@ -140,7 +140,7 @@ impl ForgeEditorApp {
                         self.render_style.label(),
                         grid_status,
                         snap_status,
-                        self.work_height,
+                        self.settings.height.level,
                     ),
                     FontId::proportional(13.0),
                     tc!(self, accent),
@@ -166,7 +166,8 @@ impl ForgeEditorApp {
                 }
 
                 // Shortcut reference (top-right corner, tiny font)
-                let shortcut_text = "\
+                if self.settings.viewport.show_shortcuts {
+                    let shortcut_text = "\
 RMB Drag: Orbit  |  MMB Drag: Pan  |  Scroll: Zoom
 LMB+RMB Drag: Pan  |  Alt+LMB: Orbit  |  Alt+RMB: Dolly
 Q: Select  M: Move  E: Rotate  R: Scale  |  S+LMB: Box Select
@@ -174,21 +175,22 @@ Move: Drag=XZ  Shift=Y  Ctrl=XY  |  Z: Render Style
 G: Grid  F: Focus  L: Layer  |  Ctrl+T: Theme  |  Ctrl+Shift+P: Cmds
 Del: Delete  Ctrl+A: Select All  Ctrl+D: Duplicate  Ctrl+G: Group
 1-7: Tabs  |  Ctrl+Z: Undo  Ctrl+Shift+Z: Redo";
-                // Use contrasting color: light text on dark bg, dark text on light bg
-                let ref_color = if self.theme_manager.is_dark() {
-                    Color32::from_rgba_premultiplied(255, 255, 255, 180)
-                } else {
-                    Color32::from_rgba_premultiplied(0, 0, 0, 180)
-                };
-                let line_h = 14.0;
-                for (i, line) in shortcut_text.lines().enumerate() {
-                    painter.text(
-                        Pos2::new(rect.right() - 10.0, rect.top() + 10.0 + i as f32 * line_h),
-                        Align2::RIGHT_TOP,
-                        line,
-                        FontId::proportional(11.0),
-                        ref_color,
-                    );
+                    // Use contrasting color: light text on dark bg, dark text on light bg
+                    let ref_color = if self.theme_manager.is_dark() {
+                        Color32::from_rgba_premultiplied(255, 255, 255, 180)
+                    } else {
+                        Color32::from_rgba_premultiplied(0, 0, 0, 180)
+                    };
+                    let line_h = 14.0;
+                    for (i, line) in shortcut_text.lines().enumerate() {
+                        painter.text(
+                            Pos2::new(rect.right() - 10.0, rect.top() + 10.0 + i as f32 * line_h),
+                            Align2::RIGHT_TOP,
+                            line,
+                            FontId::proportional(11.0),
+                            ref_color,
+                        );
+                    }
                 }
 
                 // Camera info overlay

@@ -11,8 +11,11 @@ use anyhow::{Context, Result};
 
 /// A GPU texture with its view and sampler.
 pub struct Texture {
+    /// The underlying GPU texture.
     pub texture: wgpu::Texture,
+    /// A view into the texture for shader binding.
     pub view: wgpu::TextureView,
+    /// Sampler controlling filtering and addressing.
     pub sampler: wgpu::Sampler,
 }
 

@@ -7,17 +7,29 @@ use serde::{Deserialize, Serialize};
 /// The kind of asset a file represents.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum AssetType {
+    /// 3-D mesh data (OBJ, FBX, glTF, etc.).
     Mesh,
+    /// Image texture (PNG, JPEG, BMP, etc.).
     Texture,
+    /// Material definition file.
     Material,
+    /// Complete scene file.
     Scene,
+    /// High-dynamic-range environment image.
     Hdri,
+    /// Animation clip or skeleton data.
     Animation,
+    /// Audio file (WAV, OGG, MP3, FLAC).
     Audio,
+    /// User script.
     Script,
+    /// Font file (TTF, OTF).
     Font,
+    /// GPU shader source (WGSL, GLSL, SPV).
     Shader,
+    /// Editor theme file.
     Theme,
+    /// Reusable scene fragment.
     Prefab,
 }
 

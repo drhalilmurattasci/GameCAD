@@ -35,23 +35,23 @@ impl ForgeEditorApp {
         // Scroll wheel: Zoom or Shift+Scroll: change working height
         if response.hovered() && scroll_delta.abs() > 0.0 {
             if modifiers.shift {
-                // Shift+scroll: change working height layer by snap_size increments
-                let step = self.snap_size;
+                // Shift+scroll: change working height layer by snap size increments
+                let step = self.settings.snap.size;
                 if scroll_delta > 0.0 {
-                    self.work_height += step;
+                    self.settings.height.level += step;
                 } else {
-                    self.work_height -= step;
+                    self.settings.height.level -= step;
                 }
                 // Snap to grid
-                self.work_height = (self.work_height / step).round() * step;
+                self.settings.height.level = (self.settings.height.level / step).round() * step;
                 self.console_log.push(LogEntry {
                     level: LogLevel::Info,
-                    message: format!("Working height: {:.2}m", self.work_height),
+                    message: format!("Working height: {:.2}m", self.settings.height.level),
                 });
             } else {
-                let zoom_factor = if modifiers.alt { 3.0 } else { 1.0 };
+                let zoom_factor = if modifiers.alt { self.settings.camera.alt_zoom_multiplier } else { 1.0 };
                 self.orbit_camera
-                    .zoom(-scroll_delta * zoom_factor * 0.1);
+                    .zoom(-scroll_delta * zoom_factor * self.settings.camera.zoom_speed);
             }
         }
 
@@ -70,7 +70,8 @@ impl ForgeEditorApp {
         // Skip if both buttons are held (that's pan above)
         if response.dragged_by(PointerButton::Secondary) && !modifiers.alt && !both_buttons {
             let delta = response.drag_delta();
-            let speed = if modifiers.shift { 0.01 } else { 0.005 };
+            let base = self.settings.camera.orbit_speed;
+            let speed = if modifiers.shift { base * self.settings.camera.fast_orbit_multiplier } else { base };
             self.orbit_camera.orbit(delta.x * speed, -delta.y * speed);
             self.is_orbiting = true;
         }
@@ -89,8 +90,9 @@ impl ForgeEditorApp {
             && !modifiers.shift
         {
             let delta = response.drag_delta();
+            let orbit_spd = self.settings.camera.orbit_speed;
             self.orbit_camera
-                .orbit(delta.x * 0.005, -delta.y * 0.005);
+                .orbit(delta.x * orbit_spd, -delta.y * orbit_spd);
             self.is_orbiting = true;
         }
 
@@ -142,7 +144,7 @@ impl ForgeEditorApp {
                 ToolMode::Move => {
                     // Camera-relative movement on the XZ ground plane.
                     // Object stays at its current Y unless Shift or Ctrl is held.
-                    let speed = 0.003 * cam_dist;
+                    let speed = self.settings.tools.move_speed * cam_dist;
                     let cam_pos = self.orbit_camera.position();
                     let cam_target = self.orbit_camera.target;
                     let fwd_full = cam_target - cam_pos;
@@ -168,7 +170,7 @@ impl ForgeEditorApp {
                     }
                 }
                 ToolMode::Rotate => {
-                    let speed = 0.15;
+                    let speed = self.settings.tools.rotate_speed;
                     if modifiers.shift {
                         self.transforms[sel][5] += delta.x * speed;
                     } else {
@@ -177,10 +179,11 @@ impl ForgeEditorApp {
                     }
                 }
                 ToolMode::Scale => {
-                    let factor = 1.0 + delta.x * 0.002;
-                    self.transforms[sel][6] = (self.transforms[sel][6] * factor).max(0.01);
-                    self.transforms[sel][7] = (self.transforms[sel][7] * factor).max(0.01);
-                    self.transforms[sel][8] = (self.transforms[sel][8] * factor).max(0.01);
+                    let factor = 1.0 + delta.x * self.settings.tools.scale_speed;
+                    let min_s = self.settings.tools.min_scale;
+                    self.transforms[sel][6] = (self.transforms[sel][6] * factor).max(min_s);
+                    self.transforms[sel][7] = (self.transforms[sel][7] * factor).max(min_s);
+                    self.transforms[sel][8] = (self.transforms[sel][8] * factor).max(min_s);
                 }
                 ToolMode::Select => {} // handled below
             }
@@ -203,8 +206,8 @@ impl ForgeEditorApp {
             let names = self.flatten_outliner_names();
             let ent_name = names.get(sel).cloned().unwrap_or_default();
             // Snap to grid on release — only snap axes that were moved
-            if self.snap_enabled && self.tool_mode == ToolMode::Move {
-                let s = self.snap_size;
+            if self.settings.snap.enabled && self.tool_mode == ToolMode::Move {
+                let s = self.settings.snap.size;
                 // Always snap X and Z (moved in all modes)
                 self.transforms[sel][0] = (self.transforms[sel][0] / s).round() * s;
                 self.transforms[sel][2] = (self.transforms[sel][2] / s).round() * s;
@@ -234,7 +237,7 @@ impl ForgeEditorApp {
                 (self.box_select_start, self.box_select_end)
             {
                 let dist = start.distance(end);
-                if dist > 5.0 {
+                if dist > self.settings.selection.box_select_threshold {
                     self.handle_viewport_box_select(start, end, &response.rect);
                 }
             }

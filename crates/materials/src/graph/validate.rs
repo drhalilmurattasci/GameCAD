@@ -18,14 +18,20 @@ pub enum GraphError {
     Cycle(Vec<NodeId>),
     /// A connection links pins of incompatible types.
     TypeMismatch {
+        /// Index of the offending connection.
         connection_index: usize,
+        /// Pin type on the source side.
         from_type: PinType,
+        /// Pin type on the destination side.
         to_type: PinType,
     },
     /// The graph has no PbrOutput node.
     MissingOutput,
     /// A PbrOutput input pin has no incoming connection and no default value.
-    DisconnectedOutput { pin_name: String },
+    DisconnectedOutput {
+        /// Name of the disconnected input pin.
+        pin_name: String,
+    },
 }
 
 impl fmt::Display for GraphError {

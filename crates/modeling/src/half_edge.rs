@@ -62,8 +62,11 @@ impl HalfEdge {
 /// A vertex in the mesh.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Vertex {
+    /// Vertex position in object space.
     pub position: Vec3,
+    /// Vertex normal.
     pub normal: Vec3,
+    /// Texture coordinates.
     pub uv: Vec2,
     /// One of the outgoing half-edges from this vertex.
     pub edge: HalfEdgeId,
@@ -85,8 +88,11 @@ pub struct Face {
 /// The primary editable mesh structure using a half-edge representation.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EditMesh {
+    /// All vertices in the mesh.
     pub vertices: Vec<Vertex>,
+    /// All half-edges in the mesh.
     pub half_edges: Vec<HalfEdge>,
+    /// All faces (polygons) in the mesh.
     pub faces: Vec<Face>,
 }
 

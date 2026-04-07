@@ -40,8 +40,11 @@ pub const MAX_SPOT_LIGHTS: usize = 32;
 /// ```
 #[derive(Debug, Clone, Copy)]
 pub struct DirectionalLight {
+    /// Normalized direction the light shines towards.
     pub direction: Vec3,
+    /// Light color in linear space.
     pub color: Color,
+    /// Brightness multiplier.
     pub intensity: f32,
 }
 
@@ -82,9 +85,13 @@ impl fmt::Display for DirectionalLight {
 /// ```
 #[derive(Debug, Clone, Copy)]
 pub struct PointLight {
+    /// World-space position of the light.
     pub position: Vec3,
+    /// Light color in linear space.
     pub color: Color,
+    /// Brightness multiplier.
     pub intensity: f32,
+    /// Maximum influence radius.
     pub radius: f32,
 }
 
@@ -128,10 +135,15 @@ impl fmt::Display for PointLight {
 /// ```
 #[derive(Debug, Clone, Copy)]
 pub struct SpotLight {
+    /// World-space position of the light.
     pub position: Vec3,
+    /// Direction the spotlight is aimed.
     pub direction: Vec3,
+    /// Light color in linear space.
     pub color: Color,
+    /// Brightness multiplier.
     pub intensity: f32,
+    /// Maximum influence radius.
     pub radius: f32,
     /// Inner cone angle in radians (full intensity).
     pub inner_cutoff: f32,
@@ -178,10 +190,15 @@ impl fmt::Display for SpotLight {
 /// ```
 #[derive(Debug, Clone)]
 pub struct LightSet {
+    /// The scene's primary directional light.
     pub directional: DirectionalLight,
+    /// All active point lights.
     pub point_lights: Vec<PointLight>,
+    /// All active spot lights.
     pub spot_lights: Vec<SpotLight>,
+    /// Ambient light color.
     pub ambient_color: Color,
+    /// Ambient light intensity multiplier.
     pub ambient_intensity: f32,
 }
 
@@ -298,28 +315,37 @@ impl LightSet {
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Pod, Zeroable)]
 pub struct LightUniform {
-    // Directional light
+    /// Directional light direction (xyz) with intensity in w.
     pub dir_direction: [f32; 4],
+    /// Directional light color (rgb) with intensity in w.
     pub dir_color: [f32; 4],
-    // Ambient
+    /// Ambient light color (rgba, pre-multiplied by intensity).
     pub ambient: [f32; 4],
-    // Counts
+    /// Number of active point lights.
     pub num_point_lights: u32,
+    /// Number of active spot lights.
     pub num_spot_lights: u32,
+    /// Padding for std140 alignment.
     pub _pad: [u32; 2],
-    // Point lights
+    /// Point light positions (xyz) with radius in w.
     pub point_positions: [[f32; 4]; MAX_POINT_LIGHTS],
+    /// Point light colors (rgb) with intensity in w.
     pub point_colors: [[f32; 4]; MAX_POINT_LIGHTS],
-    // Spot lights
+    /// Spot light positions (xyz) with inner cutoff in w.
     pub spot_pos_inner: [[f32; 4]; MAX_SPOT_LIGHTS],
+    /// Spot light directions (xyz) with outer cutoff in w.
     pub spot_dir_outer: [[f32; 4]; MAX_SPOT_LIGHTS],
+    /// Spot light colors (rgb) with intensity in w.
     pub spot_colors: [[f32; 4]; MAX_SPOT_LIGHTS],
 }
 
 /// A GPU buffer holding light uniform data.
 pub struct LightsBuffer {
+    /// The GPU uniform buffer.
     pub buffer: wgpu::Buffer,
+    /// Layout for binding the lights buffer in shaders.
     pub bind_group_layout: wgpu::BindGroupLayout,
+    /// Bind group referencing the lights buffer.
     pub bind_group: wgpu::BindGroup,
 }
 

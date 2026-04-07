@@ -13,7 +13,9 @@ use serde::{Deserialize, Serialize};
 /// Dark or light theme mode.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ThemeMode {
+    /// Dark color scheme.
     Dark,
+    /// Light color scheme.
     Light,
 }
 
@@ -24,20 +26,35 @@ pub enum ThemeMode {
 /// All theme colors in one struct.
 #[derive(Debug, Clone, Copy)]
 pub struct ThemeColors {
+    /// Main background color.
     pub background: Color32,
+    /// Panel / card surface color.
     pub surface: Color32,
+    /// Slightly elevated surface (tooltips, menus).
     pub surface_raised: Color32,
+    /// Inset / sunken surface (input fields, wells).
     pub surface_sunken: Color32,
+    /// Primary accent color.
     pub accent: Color32,
+    /// Secondary accent color.
     pub secondary: Color32,
+    /// Primary text color.
     pub text: Color32,
+    /// Dimmed / secondary text color.
     pub text_dim: Color32,
+    /// Disabled text color.
     pub text_disabled: Color32,
+    /// Border color.
     pub border: Color32,
+    /// Focused-element border color.
     pub border_focused: Color32,
+    /// Error / danger color.
     pub error: Color32,
+    /// Warning color.
     pub warning: Color32,
+    /// Success color.
     pub success: Color32,
+    /// Selection highlight color.
     pub selection: Color32,
 }
 

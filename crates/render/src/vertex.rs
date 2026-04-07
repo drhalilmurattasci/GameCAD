@@ -42,9 +42,13 @@ use glam::Vec3;
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Pod, Zeroable)]
 pub struct Vertex {
+    /// Vertex position in object space.
     pub position: [f32; 3],
+    /// Surface normal (unit length).
     pub normal: [f32; 3],
+    /// Texture coordinates.
     pub uv: [f32; 2],
+    /// Per-vertex color (linear RGBA).
     pub color: [f32; 4],
 }
 
@@ -92,10 +96,15 @@ impl fmt::Display for Vertex {
 
 /// A mesh whose vertex and index buffers live on the GPU, with bounding info.
 pub struct GpuMesh {
+    /// GPU vertex buffer.
     pub vertex_buffer: wgpu::Buffer,
+    /// GPU index buffer.
     pub index_buffer: wgpu::Buffer,
+    /// Number of indices to draw.
     pub index_count: u32,
+    /// Index element format (u16 or u32).
     pub index_format: wgpu::IndexFormat,
+    /// Axis-aligned bounding box of the mesh.
     pub bounds: AABB,
 }
 

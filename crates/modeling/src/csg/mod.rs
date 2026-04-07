@@ -14,8 +14,11 @@ pub use boolean::csg_operation;
 /// CSG operation type.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CsgOp {
+    /// Combine two solids, keeping all geometry.
     Union,
+    /// Remove the second solid from the first.
     Subtract,
+    /// Keep only the overlapping region.
     Intersect,
 }
 

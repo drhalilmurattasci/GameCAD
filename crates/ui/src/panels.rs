@@ -9,18 +9,28 @@ use indexmap::IndexMap;
 /// Unique identifier for an editor panel.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum PanelId {
+    /// Scene hierarchy tree view.
     SceneHierarchy,
+    /// Object inspector / properties editor.
     Inspector,
+    /// Asset browser / file explorer.
     AssetBrowser,
+    /// Log / console output.
     Console,
+    /// 3D viewport.
     Viewport,
+    /// Generic properties panel.
     Properties,
+    /// Animation timeline.
     Timeline,
+    /// AI agent chat panel.
     AgentChat,
+    /// Integrated code / script editor.
     CodeEditor,
 }
 
 impl PanelId {
+    /// Returns a human-readable label for this panel.
     pub fn label(self) -> &'static str {
         match self {
             Self::SceneHierarchy => "Scene Hierarchy",
@@ -63,6 +73,7 @@ pub struct PanelManager {
 }
 
 impl PanelManager {
+    /// Creates an empty panel manager.
     pub fn new() -> Self {
         Self {
             panels: IndexMap::new(),

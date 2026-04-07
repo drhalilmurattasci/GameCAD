@@ -138,6 +138,7 @@ impl EventBus {
 /// Emitted when the current entity selection changes.
 #[derive(Debug, Clone)]
 pub struct SelectionChanged {
+    /// The newly selected entities.
     pub selected: Vec<EntityId>,
 }
 
@@ -148,18 +149,21 @@ pub struct SceneModified;
 /// Emitted after an asset has been imported into the project.
 #[derive(Debug, Clone)]
 pub struct AssetImported {
+    /// The identifier of the imported asset.
     pub asset_id: AssetId,
 }
 
 /// Emitted after an undo operation has been performed.
 #[derive(Debug, Clone)]
 pub struct UndoPerformed {
+    /// Human-readable description of the undone command.
     pub description: String,
 }
 
 /// Emitted after a redo operation has been performed.
 #[derive(Debug, Clone)]
 pub struct RedoPerformed {
+    /// Human-readable description of the redone command.
     pub description: String,
 }
 

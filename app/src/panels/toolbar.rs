@@ -126,22 +126,23 @@ impl ForgeEditorApp {
                 ui.add_space(8.0);
 
                 // Grid toggle + size
-                let grid_label = if self.show_grid { "\u{25A6}" } else { "\u{25A1}" };
+                let grid_visible = self.settings.grid.visible;
+                let grid_label = if grid_visible { "\u{25A6}" } else { "\u{25A1}" };
                 let grid_btn = egui::Button::new(
                     RichText::new(grid_label)
                         .font(FontId::proportional(14.0))
-                        .color(if self.show_grid { tc!(self, accent) } else { tc!(self, text_dim) }),
+                        .color(if grid_visible { tc!(self, accent) } else { tc!(self, text_dim) }),
                 );
                 if ui.add(grid_btn).on_hover_text("Toggle grid (G)").clicked() {
-                    self.show_grid = !self.show_grid;
+                    self.settings.grid.visible = !self.settings.grid.visible;
                     self.console_log.push(crate::types::LogEntry {
                         level: crate::types::LogLevel::Info,
-                        message: format!("Grid {}", if self.show_grid { "ON" } else { "OFF" }),
+                        message: format!("Grid {}", if self.settings.grid.visible { "ON" } else { "OFF" }),
                     });
                 }
                 ui.label(RichText::new("Grid:").font(FontId::proportional(11.0)).color(tc!(self, text_dim)));
                 ui.add(
-                    egui::DragValue::new(&mut self.grid_size)
+                    egui::DragValue::new(&mut self.settings.grid.size)
                         .speed(0.1)
                         .range(0.1..=100.0)
                         .max_decimals(1)
@@ -151,22 +152,23 @@ impl ForgeEditorApp {
                 ui.add_space(4.0);
 
                 // Snap toggle + size
-                let snap_label = if self.snap_enabled { "\u{1F9F2}" } else { "\u{25CB}" };
+                let snap_on = self.settings.snap.enabled;
+                let snap_label = if snap_on { "\u{1F9F2}" } else { "\u{25CB}" };
                 let snap_btn = egui::Button::new(
                     RichText::new(snap_label)
                         .font(FontId::proportional(14.0))
-                        .color(if self.snap_enabled { tc!(self, accent) } else { tc!(self, text_dim) }),
+                        .color(if snap_on { tc!(self, accent) } else { tc!(self, text_dim) }),
                 );
                 if ui.add(snap_btn).on_hover_text("Toggle snap").clicked() {
-                    self.snap_enabled = !self.snap_enabled;
+                    self.settings.snap.enabled = !self.settings.snap.enabled;
                     self.console_log.push(crate::types::LogEntry {
                         level: crate::types::LogLevel::Info,
-                        message: format!("Snap {}", if self.snap_enabled { "ON" } else { "OFF" }),
+                        message: format!("Snap {}", if self.settings.snap.enabled { "ON" } else { "OFF" }),
                     });
                 }
                 ui.label(RichText::new("Snap:").font(FontId::proportional(11.0)).color(tc!(self, text_dim)));
                 ui.add(
-                    egui::DragValue::new(&mut self.snap_size)
+                    egui::DragValue::new(&mut self.settings.snap.size)
                         .speed(0.05)
                         .range(0.01..=50.0)
                         .max_decimals(2)
@@ -178,7 +180,7 @@ impl ForgeEditorApp {
                 // Working height
                 ui.label(RichText::new("H:").font(FontId::proportional(11.0)).color(tc!(self, text_dim)));
                 ui.add(
-                    egui::DragValue::new(&mut self.work_height)
+                    egui::DragValue::new(&mut self.settings.height.level)
                         .speed(0.1)
                         .range(-1000.0..=1000.0)
                         .max_decimals(1)

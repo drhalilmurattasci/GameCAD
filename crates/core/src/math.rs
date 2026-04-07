@@ -483,9 +483,13 @@ impl Plane {
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Color {
+    /// Red channel (linear space).
     pub r: f32,
+    /// Green channel (linear space).
     pub g: f32,
+    /// Blue channel (linear space).
     pub b: f32,
+    /// Alpha channel (0.0 = fully transparent, 1.0 = fully opaque).
     pub a: f32,
 }
 
@@ -715,8 +719,11 @@ fn linear_to_srgb(c: f32) -> f32 {
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Transform {
+    /// World-space position.
     pub position: Vec3,
+    /// Orientation as a unit quaternion.
     pub rotation: Quat,
+    /// Non-uniform scale along each axis.
     pub scale: Vec3,
 }
 

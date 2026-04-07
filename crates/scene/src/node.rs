@@ -12,40 +12,59 @@ pub enum NodeType {
 
     /// A renderable mesh.
     Mesh {
+        /// Asset identifier for the mesh data.
         asset_id: AssetId,
+        /// Material identifiers assigned to each sub-mesh.
         material_ids: Vec<MaterialId>,
     },
 
     /// A directional light (like the sun).
     DirectionalLight {
+        /// Normalized direction the light shines towards.
         direction: Vec3,
+        /// Light color in linear space.
         color: Color,
+        /// Brightness multiplier.
         intensity: f32,
     },
 
     /// A point light that emits in all directions.
     PointLight {
+        /// World-space position.
         position: Vec3,
+        /// Light color in linear space.
         color: Color,
+        /// Brightness multiplier.
         intensity: f32,
+        /// Maximum influence radius.
         radius: f32,
     },
 
     /// A spot light with a cone of influence.
     SpotLight {
+        /// World-space position.
         position: Vec3,
+        /// Direction the spotlight is aimed.
         direction: Vec3,
+        /// Light color in linear space.
         color: Color,
+        /// Brightness multiplier.
         intensity: f32,
+        /// Inner cone half-angle in radians.
         inner_angle: f32,
+        /// Outer cone half-angle in radians.
         outer_angle: f32,
+        /// Maximum influence range.
         range: f32,
     },
 
     /// A camera node.
     Camera {
+        /// Vertical field of view in radians.
         fov: f32,
+        /// Near clipping plane distance.
         near: f32,
+        /// Far clipping plane distance.
         far: f32,
     },
 

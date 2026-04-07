@@ -10,12 +10,19 @@ use crate::theme::ThemeColors;
 /// The different workspace tabs available in Forge Editor.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum WorkspaceTab {
+    /// Terrain and level editing.
     MapEditor,
+    /// Gameplay logic and scripting.
     Gameplay,
+    /// 3D object / mesh editing.
     ObjectEditor,
+    /// Script code editor.
     ScriptEditor,
+    /// Node-based material editor.
     MaterialEditor,
+    /// Animation timeline and keyframing.
     Animation,
+    /// Physics simulation settings.
     Physics,
 }
 

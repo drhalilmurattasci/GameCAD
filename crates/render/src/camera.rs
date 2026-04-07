@@ -29,14 +29,22 @@ use wgpu::util::DeviceExt;
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Projection {
+    /// Perspective projection with a field-of-view cone.
     Perspective {
+        /// Vertical field of view in radians.
         fov_y_radians: f32,
+        /// Near clipping plane distance.
         near: f32,
+        /// Far clipping plane distance.
         far: f32,
     },
+    /// Orthographic (parallel) projection.
     Orthographic {
+        /// Visible height in world units.
         height: f32,
+        /// Near clipping plane distance.
         near: f32,
+        /// Far clipping plane distance.
         far: f32,
     },
 }
@@ -84,10 +92,15 @@ impl std::fmt::Display for Projection {
 /// ```
 #[derive(Debug, Clone)]
 pub struct Camera {
+    /// Camera position in world space.
     pub eye: Vec3,
+    /// The point the camera looks at.
     pub target: Vec3,
+    /// The world-space up direction.
     pub up: Vec3,
+    /// Projection mode (perspective or orthographic).
     pub projection: Projection,
+    /// Width / height aspect ratio.
     pub aspect: f32,
 }
 
@@ -222,17 +235,25 @@ impl Camera {
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Pod, Zeroable)]
 pub struct CameraUniform {
+    /// Combined view-projection matrix.
     pub view_proj: [[f32; 4]; 4],
+    /// View (camera) matrix.
     pub view: [[f32; 4]; 4],
+    /// Projection matrix.
     pub proj: [[f32; 4]; 4],
+    /// Camera position in world space.
     pub eye_pos: [f32; 3],
+    /// Padding to satisfy std140 alignment.
     pub _pad: f32,
 }
 
 /// A GPU buffer holding camera uniform data, ready to bind.
 pub struct CameraBuffer {
+    /// The GPU uniform buffer.
     pub buffer: wgpu::Buffer,
+    /// Layout for binding the camera buffer in shaders.
     pub bind_group_layout: wgpu::BindGroupLayout,
+    /// Bind group referencing the camera buffer.
     pub bind_group: wgpu::BindGroup,
 }
 

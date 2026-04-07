@@ -10,9 +10,13 @@ use tracing::info;
 ///
 /// Created via [`GpuContext::new`], which requests a high-performance GPU adapter.
 pub struct GpuContext {
+    /// The wgpu instance.
     pub instance: wgpu::Instance,
+    /// The selected GPU adapter.
     pub adapter: wgpu::Adapter,
+    /// The logical GPU device.
     pub device: wgpu::Device,
+    /// Command submission queue.
     pub queue: wgpu::Queue,
 }
 
@@ -74,7 +78,9 @@ impl GpuContext {
 
 /// Manages a wgpu surface and its configuration for window rendering.
 pub struct SurfaceState {
+    /// The window surface.
     pub surface: wgpu::Surface<'static>,
+    /// Current surface configuration (format, size, present mode).
     pub config: wgpu::SurfaceConfiguration,
 }
 

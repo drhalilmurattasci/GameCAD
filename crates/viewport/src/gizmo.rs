@@ -6,27 +6,39 @@ use serde::{Deserialize, Serialize};
 /// The active transformation mode for the gizmo.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum GizmoMode {
+    /// Move objects along axes/planes.
     Translate,
+    /// Rotate objects around axes.
     Rotate,
+    /// Scale objects along axes.
     Scale,
+    /// Gizmo is inactive.
     None,
 }
 
 /// The coordinate space in which gizmo operations are performed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum GizmoSpace {
+    /// Object-local coordinate space.
     Local,
+    /// World coordinate space.
     World,
 }
 
 /// An axis or plane that a drag operation is constrained to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Axis {
+    /// X axis.
     X,
+    /// Y axis.
     Y,
+    /// Z axis.
     Z,
+    /// XY plane.
     XY,
+    /// XZ plane.
     XZ,
+    /// YZ plane.
     YZ,
 }
 
@@ -68,10 +80,15 @@ struct DragState {
 /// A 3D manipulation gizmo for translate, rotate, and scale operations.
 #[derive(Debug, Clone)]
 pub struct Gizmo {
+    /// Active transformation mode.
     pub mode: GizmoMode,
+    /// Coordinate space for operations.
     pub space: GizmoSpace,
+    /// World-space position of the gizmo.
     pub position: Vec3,
+    /// Orientation matrix for local-space rendering.
     pub orientation: Mat4,
+    /// Visual scale factor.
     pub scale: f32,
     drag: Option<DragState>,
 }

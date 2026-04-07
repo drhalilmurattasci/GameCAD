@@ -11,6 +11,7 @@ use forge_ui::theme::ThemeManager;
 use forge_viewport::camera::OrbitCamera;
 use glam::Vec3;
 
+use crate::settings::EditorSettings;
 use crate::types::*;
 
 // ---------------------------------------------------------------------------
@@ -51,13 +52,8 @@ pub(crate) struct ForgeEditorApp {
     pub(crate) box_select_key_held: bool,
     // Theme manager (dark/light toggle)
     pub(crate) theme_manager: ThemeManager,
-    // Grid & snap (on by default)
-    pub(crate) show_grid: bool,
-    pub(crate) grid_size: f32,
-    pub(crate) snap_enabled: bool,
-    pub(crate) snap_size: f32,
-    // Working height layer (Y level)
-    pub(crate) work_height: f32,
+    // Centralized editor settings (grid, snap, camera, tools, viewport, height, selection)
+    pub(crate) settings: EditorSettings,
     // Layers (color-coded, layer 0 = black base)
     pub(crate) layers: Vec<EditorLayer>,
     pub(crate) active_layer: usize,
@@ -199,11 +195,7 @@ impl Default for ForgeEditorApp {
             box_select_end: None,
             box_select_key_held: false,
             theme_manager: ThemeManager::new(),
-            show_grid: true,
-            grid_size: 1.0,
-            snap_enabled: true,
-            snap_size: 0.5,
-            work_height: 0.0,
+            settings: EditorSettings::default(),
             layers: vec![
                 EditorLayer { name: "Base".into(), color: egui::Color32::from_rgb(0, 0, 0), visible: true, locked: false },
                 EditorLayer { name: "Environment".into(), color: egui::Color32::from_rgb(0x2e, 0xcc, 0x71), visible: true, locked: false },

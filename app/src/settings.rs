@@ -249,6 +249,41 @@ impl Default for HeightSettings {
 }
 
 // ─────────────────────────────────────────────────────────────────────
+// Selection settings
+// ─────────────────────────────────────────────────────────────────────
+
+/// Selection display and behavior configuration.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct SelectionSettings {
+    /// Default selection color (yellow highlight) [R, G, B]
+    pub highlight_color: [u8; 3],
+    /// Selection wireframe line width
+    pub wireframe_width: f32,
+    /// Selection hover highlight alpha (0-255)
+    pub hover_alpha: u8,
+    /// Whether to show selection bounding box
+    pub show_bounds: bool,
+    /// Box select minimum drag distance in pixels
+    pub box_select_threshold: f32,
+    /// Multi-select behavior: true = toggle, false = replace
+    pub ctrl_click_toggles: bool,
+}
+
+impl Default for SelectionSettings {
+    fn default() -> Self {
+        Self {
+            highlight_color: [255, 255, 0], // Yellow
+            wireframe_width: 2.0,
+            hover_alpha: 40,
+            show_bounds: true,
+            box_select_threshold: 5.0,
+            ctrl_click_toggles: true,
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────
 // Master settings struct
 // ─────────────────────────────────────────────────────────────────────
 
@@ -262,6 +297,7 @@ pub struct EditorSettings {
     pub tools: ToolSettings,
     pub viewport: ViewportSettings,
     pub height: HeightSettings,
+    pub selection: SelectionSettings,
 }
 
 impl Default for EditorSettings {
@@ -273,6 +309,7 @@ impl Default for EditorSettings {
             tools: ToolSettings::default(),
             viewport: ViewportSettings::default(),
             height: HeightSettings::default(),
+            selection: SelectionSettings::default(),
         }
     }
 }
@@ -334,6 +371,24 @@ mod tests {
         assert_eq!(DEFAULT_LAYERS.len(), 6);
         assert_eq!(DEFAULT_LAYERS[0].0, "Base");
         assert_eq!(DEFAULT_LAYERS[0].1, [0, 0, 0]);
+    }
+
+    #[test]
+    fn selection_defaults_are_sane() {
+        let s = SelectionSettings::default();
+        assert_eq!(s.highlight_color, [255, 255, 0]);
+        assert_eq!(s.wireframe_width, 2.0);
+        assert_eq!(s.hover_alpha, 40);
+        assert!(s.show_bounds);
+        assert_eq!(s.box_select_threshold, 5.0);
+        assert!(s.ctrl_click_toggles);
+
+        // Roundtrip via EditorSettings
+        let es = EditorSettings::default();
+        let toml_str = toml::to_string_pretty(&es).unwrap();
+        let loaded: EditorSettings = toml::from_str(&toml_str).unwrap();
+        assert_eq!(loaded.selection.highlight_color, [255, 255, 0]);
+        assert_eq!(loaded.selection.box_select_threshold, 5.0);
     }
 
     #[test]

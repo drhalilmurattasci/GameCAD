@@ -25,7 +25,9 @@ pub enum PropertyValue {
     Int(i32),
     /// An enumeration with a list of options and a selected index.
     Enum {
+        /// Available option labels.
         options: Vec<String>,
+        /// Currently selected index.
         selected: usize,
     },
     /// A reference to an asset by ID.

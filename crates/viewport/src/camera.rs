@@ -12,11 +12,17 @@ const PITCH_EPSILON: f32 = 0.001;
 /// Preset axis-aligned views for the camera.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum AxisView {
+    /// Looking along -Z.
     Front,
+    /// Looking along +Z.
     Back,
+    /// Looking along +X.
     Left,
+    /// Looking along -X.
     Right,
+    /// Looking along -Y (top-down).
     Top,
+    /// Looking along +Y (bottom-up).
     Bottom,
 }
 

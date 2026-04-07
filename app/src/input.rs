@@ -91,10 +91,10 @@ impl ForgeEditorApp {
         if ctx.input(|i| {
             i.key_pressed(egui::Key::G) && !i.modifiers.command && !i.modifiers.shift
         }) {
-            self.show_grid = !self.show_grid;
+            self.settings.grid.visible = !self.settings.grid.visible;
             self.console_log.push(LogEntry {
                 level: LogLevel::Info,
-                message: format!("Grid {}", if self.show_grid { "ON" } else { "OFF" }),
+                message: format!("Grid {}", if self.settings.grid.visible { "ON" } else { "OFF" }),
             });
         }
 

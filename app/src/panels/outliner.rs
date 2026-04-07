@@ -26,14 +26,65 @@ impl ForgeEditorApp {
                         .strong(),
                 );
                 ui.separator();
-                egui::ScrollArea::vertical().show(ui, |ui| {
-                    // Flatten the tree for display
-                    let tree = self.outliner.clone();
-                    let mut flat_idx = 0usize;
-                    for root in &tree {
-                        self.draw_outliner_node(ui, root, 0, &mut flat_idx);
-                    }
-                });
+                egui::ScrollArea::vertical()
+                    .max_height(ui.available_height() * 0.6)
+                    .show(ui, |ui| {
+                        // Flatten the tree for display
+                        let tree = self.outliner.clone();
+                        let mut flat_idx = 0usize;
+                        for root in &tree {
+                            self.draw_outliner_node(ui, root, 0, &mut flat_idx);
+                        }
+                    });
+
+                ui.add_space(8.0);
+                ui.separator();
+                ui.add_space(4.0);
+
+                // ---- Layers panel ----
+                ui.label(
+                    RichText::new("Layers")
+                        .font(FontId::proportional(13.0))
+                        .color(tc!(self, text))
+                        .strong(),
+                );
+                ui.add_space(4.0);
+
+                let active = self.active_layer;
+                let mut new_active = active;
+                for (i, layer) in self.layers.iter_mut().enumerate() {
+                    ui.horizontal(|ui| {
+                        // Color swatch
+                        let (swatch_rect, _) = ui.allocate_exact_size(Vec2::new(12.0, 12.0), egui::Sense::hover());
+                        ui.painter().rect_filled(swatch_rect, 2, layer.color);
+                        if i == active {
+                            ui.painter().rect_stroke(swatch_rect, 2, Stroke::new(2.0, egui::Color32::from_rgb(0x4e, 0xff, 0x93)), StrokeKind::Outside);
+                        }
+
+                        // Visibility eye
+                        let vis_icon = if layer.visible { "\u{1F441}" } else { "\u{2014}" };
+                        if ui.small_button(vis_icon).on_hover_text("Toggle visibility").clicked() {
+                            layer.visible = !layer.visible;
+                        }
+
+                        // Lock
+                        let lock_icon = if layer.locked { "\u{1F512}" } else { "\u{1F513}" };
+                        if ui.small_button(lock_icon).on_hover_text("Toggle lock").clicked() {
+                            layer.locked = !layer.locked;
+                        }
+
+                        // Name (clickable to set active)
+                        let label_color = if i == active { tc!(self, accent) } else { tc!(self, text) };
+                        if ui.add(egui::Label::new(
+                            RichText::new(&layer.name)
+                                .font(FontId::proportional(12.0))
+                                .color(label_color),
+                        ).sense(egui::Sense::click())).clicked() {
+                            new_active = i;
+                        }
+                    });
+                }
+                self.active_layer = new_active;
             });
     }
 

@@ -32,11 +32,27 @@ impl ForgeEditorApp {
             self.right_click_start_pos = pointer_pos;
         }
 
-        // Scroll wheel: Zoom
+        // Scroll wheel: Zoom or Shift+Scroll: change working height
         if response.hovered() && scroll_delta.abs() > 0.0 {
-            let zoom_factor = if modifiers.alt { 3.0 } else { 1.0 };
-            self.orbit_camera
-                .zoom(-scroll_delta * zoom_factor * 0.1);
+            if modifiers.shift {
+                // Shift+scroll: change working height layer by snap_size increments
+                let step = self.snap_size;
+                if scroll_delta > 0.0 {
+                    self.work_height += step;
+                } else {
+                    self.work_height -= step;
+                }
+                // Snap to grid
+                self.work_height = (self.work_height / step).round() * step;
+                self.console_log.push(LogEntry {
+                    level: LogLevel::Info,
+                    message: format!("Working height: {:.2}m", self.work_height),
+                });
+            } else {
+                let zoom_factor = if modifiers.alt { 3.0 } else { 1.0 };
+                self.orbit_camera
+                    .zoom(-scroll_delta * zoom_factor * 0.1);
+            }
         }
 
         // Left + Right buttons held: Pan scene (like Unreal middle-click pan)

@@ -173,6 +173,18 @@ impl ForgeEditorApp {
                         .suffix("m"),
                 ).on_hover_text("Snap increment");
 
+                ui.add_space(4.0);
+
+                // Working height
+                ui.label(RichText::new("H:").font(FontId::proportional(11.0)).color(tc!(self, text_dim)));
+                ui.add(
+                    egui::DragValue::new(&mut self.work_height)
+                        .speed(0.1)
+                        .range(-1000.0..=1000.0)
+                        .max_decimals(1)
+                        .suffix("m"),
+                ).on_hover_text("Working height (Shift+Scroll)");
+
                 ui.add_space(8.0);
                 ui.separator();
                 ui.add_space(8.0);

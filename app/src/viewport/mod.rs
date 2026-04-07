@@ -82,6 +82,22 @@ impl ForgeEditorApp {
                     Self::draw_perspective_grid(&painter, &vp, &rect, grid_c, grid_mc, self.grid_size);
                 }
 
+                // ---- Working height plane indicator ----
+                if self.work_height.abs() > 0.01 {
+                    let h = self.work_height;
+                    let extent = 10.0_f32;
+                    // Height plane fill color (reserved for future quad rendering)
+                    let h_stroke = Stroke::new(1.0, Color32::from_rgba_premultiplied(0x4e, 0xff, 0x93, 80));
+                    // Draw 4 edges of the height plane
+                    Self::draw_line_3d(&painter, &vp, &rect, glam::Vec3::new(-extent, h, -extent), glam::Vec3::new(extent, h, -extent), h_stroke);
+                    Self::draw_line_3d(&painter, &vp, &rect, glam::Vec3::new(extent, h, -extent), glam::Vec3::new(extent, h, extent), h_stroke);
+                    Self::draw_line_3d(&painter, &vp, &rect, glam::Vec3::new(extent, h, extent), glam::Vec3::new(-extent, h, extent), h_stroke);
+                    Self::draw_line_3d(&painter, &vp, &rect, glam::Vec3::new(-extent, h, extent), glam::Vec3::new(-extent, h, -extent), h_stroke);
+                    // Cross lines
+                    Self::draw_line_3d(&painter, &vp, &rect, glam::Vec3::new(-extent, h, 0.0), glam::Vec3::new(extent, h, 0.0), h_stroke);
+                    Self::draw_line_3d(&painter, &vp, &rect, glam::Vec3::new(0.0, h, -extent), glam::Vec3::new(0.0, h, extent), h_stroke);
+                }
+
                 // ---- Draw 3D scene objects with projection ----
                 let cam_pos = self.orbit_camera.position();
                 self.draw_projected_objects(&painter, &vp, &rect, wire_c, cam_pos);
@@ -119,11 +135,12 @@ impl ForgeEditorApp {
                     Pos2::new(rect.left() + 12.0, rect.top() + 12.0),
                     Align2::LEFT_TOP,
                     format!(
-                        "{} | {} | {} | {}",
+                        "{} | {} | {} | {} | H:{:.1}m",
                         self.active_tab.label(),
                         self.render_style.label(),
                         grid_status,
                         snap_status,
+                        self.work_height,
                     ),
                     FontId::proportional(13.0),
                     tc!(self, accent),

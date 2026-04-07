@@ -56,6 +56,20 @@ pub(crate) struct ForgeEditorApp {
     pub(crate) grid_size: f32,
     pub(crate) snap_enabled: bool,
     pub(crate) snap_size: f32,
+    // Working height layer (Y level)
+    pub(crate) work_height: f32,
+    // Layers (color-coded, layer 0 = black base)
+    pub(crate) layers: Vec<EditorLayer>,
+    pub(crate) active_layer: usize,
+}
+
+/// A named, color-coded editor layer.
+#[derive(Clone, Debug)]
+pub(crate) struct EditorLayer {
+    pub(crate) name: String,
+    pub(crate) color: egui::Color32,
+    pub(crate) visible: bool,
+    pub(crate) locked: bool,
 }
 
 impl Default for ForgeEditorApp {
@@ -189,6 +203,16 @@ impl Default for ForgeEditorApp {
             grid_size: 1.0,
             snap_enabled: true,
             snap_size: 0.5,
+            work_height: 0.0,
+            layers: vec![
+                EditorLayer { name: "Base".into(), color: egui::Color32::from_rgb(0, 0, 0), visible: true, locked: false },
+                EditorLayer { name: "Environment".into(), color: egui::Color32::from_rgb(0x2e, 0xcc, 0x71), visible: true, locked: false },
+                EditorLayer { name: "Characters".into(), color: egui::Color32::from_rgb(0x3e, 0x55, 0xff), visible: true, locked: false },
+                EditorLayer { name: "Lights".into(), color: egui::Color32::from_rgb(0xff, 0xd7, 0x00), visible: true, locked: false },
+                EditorLayer { name: "Effects".into(), color: egui::Color32::from_rgb(0xe9, 0x45, 0x60), visible: true, locked: false },
+                EditorLayer { name: "UI".into(), color: egui::Color32::from_rgb(0x9b, 0x59, 0xb6), visible: true, locked: false },
+            ],
+            active_layer: 0,
         }
     }
 }

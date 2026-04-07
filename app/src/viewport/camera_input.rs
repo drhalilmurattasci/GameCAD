@@ -39,8 +39,20 @@ impl ForgeEditorApp {
                 .zoom(-scroll_delta * zoom_factor * 0.1);
         }
 
+        // Left + Right buttons held: Pan scene (like Unreal middle-click pan)
+        let both_buttons = ctx.input(|i| {
+            i.pointer.button_down(PointerButton::Primary)
+                && i.pointer.button_down(PointerButton::Secondary)
+        });
+        if both_buttons && response.dragged() {
+            let delta = response.drag_delta();
+            self.orbit_camera.pan(delta.x, delta.y);
+            self.is_panning = true;
+        }
+
         // Right drag: Orbit camera (or Shift+Right drag: fast orbit)
-        if response.dragged_by(PointerButton::Secondary) && !modifiers.alt {
+        // Skip if both buttons are held (that's pan above)
+        if response.dragged_by(PointerButton::Secondary) && !modifiers.alt && !both_buttons {
             let delta = response.drag_delta();
             let speed = if modifiers.shift { 0.01 } else { 0.005 };
             self.orbit_camera.orbit(delta.x * speed, -delta.y * speed);

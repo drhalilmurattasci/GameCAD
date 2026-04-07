@@ -15,6 +15,7 @@ mod commands;
 mod entity;
 mod input;
 mod panels;
+pub(crate) mod settings;
 mod types;
 mod viewport;
 
@@ -31,8 +32,8 @@ fn main() -> eframe::Result<()> {
 
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_title("Forge Editor")
-            .with_inner_size([1600.0, 900.0])
+            .with_title(settings::APP_NAME)
+            .with_inner_size([settings::DEFAULT_WINDOW_WIDTH, settings::DEFAULT_WINDOW_HEIGHT])
             .with_min_inner_size([800.0, 500.0]),
         ..Default::default()
     };

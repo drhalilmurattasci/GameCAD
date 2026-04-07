@@ -21,6 +21,17 @@
 11. [Cross-Reference Table](#part-11-cross-reference-table)
 12. [Implementation Priority](#part-12-implementation-priority)
 13. [Open Questions & Future Work](#part-13-open-questions--future-work)
+14. [Coordinate System Modes](#part-14-coordinate-system-modes)
+15. [Angular Units](#part-15-angular-units)
+16. [Time Units for Animation](#part-16-time-units-for-animation)
+17. [Velocity & Physics Units](#part-17-velocity--physics-units)
+18. [Color Units & Spaces](#part-18-color-units--spaces)
+19. [Area & Volume Display](#part-19-area--volume-display)
+20. [DPI / Pixels Per Unit (2D Mode)](#part-20-dpi--pixels-per-unit-2d-mode)
+21. [Export Unit Mapping](#part-21-export-unit-mapping)
+22. [Measurement History & Bookmarks](#part-22-measurement-history--bookmarks)
+23. [Smart Unit Detection](#part-23-smart-unit-detection)
+24. [Construction Plane System (Rhino-inspired)](#part-24-construction-plane-system-rhino-inspired)
 
 ---
 
@@ -1396,6 +1407,225 @@ All "Yes (by definition)" values are internationally standardized exact conversi
 | Datum | A reference point or plane from which measurements are taken (used in ordinate dimensions). |
 | PPM | Pixels per meter: configurable ratio for the pixel display unit. |
 | Witness line | The thin lines extending from geometry to a dimension line (also called extension lines). |
+| Coordinate system | Convention defining which axis is up, which is forward, and handedness (left/right). |
+| Y-Up | Coordinate convention where the Y axis points up. Used by OpenGL, glTF, Blender, Unity, Godot. |
+| Z-Up | Coordinate convention where the Z axis points up. Used by 3ds Max, Unreal, AutoCAD, Rhino. |
+| Handedness | Whether a coordinate system is left-handed or right-handed, determined by cross-product direction. |
+| Angular unit | Unit of measurement for angles: degrees, radians, gradians, turns, etc. |
+| DMS | Degrees-minutes-seconds notation for angles (e.g., 45°30'15"). |
+| SMPTE timecode | Standard time display format for film/broadcast: HH:MM:SS:FF (hours, minutes, seconds, frames). |
+| Frame rate | Number of animation frames per second (e.g., 24fps for film, 60fps for games). |
+| Sub-frame interpolation | Computing in-between values within a single frame for smoother playback at higher rates. |
+| Linear RGB | Color space where values are proportional to physical light intensity, used for rendering math. |
+| sRGB | Standard color space for displays, with gamma curve applied for perceptual uniformity. |
+| HDR color | Color values exceeding the 0.0-1.0 range, used for emissive materials and light sources. |
+| OKLCH | Perceptually uniform color space using Lightness, Chroma, and Hue components. |
+| PPU | Pixels per unit: ratio mapping world units to pixel dimensions in 2D mode. |
+| CPlane | Construction plane: a user-defined reference plane for sketching, snapping, and grid display. |
+| Smart unit detection | Automatic inference of source file units based on coordinate ranges, file type, and metadata. |
+| Measurement bookmark | A saved measurement with custom label, kept for reference or export. |
+| Export unit mapping | Scale conversion applied when exporting to a target engine or file format. |
+
+---
+
+## Part 14: Coordinate System Modes
+
+Different industries use different coordinate conventions:
+
+| System | Up Axis | Forward | Right | Used By |
+|--------|---------|---------|-------|---------|
+| Y-Up Right-Hand | +Y | -Z | +X | OpenGL, Blender, Godot, glTF |
+| Y-Up Left-Hand | +Y | +Z | +X | Unity, DirectX |
+| Z-Up Right-Hand | +Z | +Y | +X | 3ds Max, Unreal, AutoCAD, Rhino |
+| Z-Up Left-Hand | +Z | +X | +Y | Some CAD tools |
+
+GameCAD should:
+- Default to Y-Up Right-Hand (matching glTF/wgpu)
+- Allow project-level override for Z-Up workflows
+- Auto-convert on import from DCC tools (Blender Y-Up, Max Z-Up, etc.)
+- Show axis indicator in viewport matching current convention
+- Config option in project settings
+
+---
+
+## Part 15: Angular Units
+
+| Unit | Symbol | Per Revolution | Use Case |
+|------|--------|---------------|----------|
+| Degrees | ° | 360 | General, games, architecture |
+| Radians | rad | 2π | Math, physics, shaders |
+| Gradians | grad | 400 | European surveying |
+| Turns | turn | 1 | Procedural, animation cycles |
+| Minutes of arc | ' | 21600 | Astronomy, surveying |
+| Seconds of arc | " | 1296000 | Precision astronomy |
+| Mils (NATO) | mil | 6400 | Military targeting |
+
+- Internal: radians (Rust/glam standard)
+- Display: degrees by default, configurable
+- Inspector rotation fields always show in display angular unit
+- Support DMS (degrees-minutes-seconds) input: "45°30'15""
+
+---
+
+## Part 16: Time Units for Animation
+
+| Unit | Use Case | Frames @24 | Frames @30 | Frames @60 |
+|------|----------|-----------|-----------|-----------|
+| Seconds | Universal timeline | 24 | 30 | 60 |
+| Frames | Animation, VFX | 1 | 1 | 1 |
+| SMPTE Timecode | Film/broadcast | HH:MM:SS:FF | HH:MM:SS:FF | HH:MM:SS:FF |
+| Beats/BPM | Music/rhythm games | Variable | Variable | Variable |
+| Ticks | Simulation | Engine-defined | Engine-defined | Engine-defined |
+
+- Timeline ruler shows in selected time unit
+- Configurable frame rate per project (24, 25, 30, 48, 60, 120, custom)
+- Timecode display mode for film/broadcast workflows
+- Sub-frame interpolation for 60fps playback of 24fps animation
+
+---
+
+## Part 17: Velocity & Physics Units
+
+| Quantity | Internal | Display Options |
+|----------|----------|----------------|
+| Linear velocity | m/s | m/s, km/h, mph, knots, ft/s |
+| Angular velocity | rad/s | °/s, RPM, rad/s |
+| Acceleration | m/s² | m/s², g-force, ft/s² |
+| Force | N | N, kN, lbf, kgf |
+| Mass | kg | kg, g, lb, oz, ton |
+| Torque | N·m | N·m, lb·ft, kgf·m |
+| Pressure | Pa | Pa, kPa, psi, bar, atm |
+| Temperature | K | K, °C, °F |
+| Density | kg/m³ | kg/m³, g/cm³, lb/ft³ |
+
+For physics simulation preview — show velocities and forces in user-chosen units.
+
+---
+
+## Part 18: Color Units & Spaces
+
+| Space | Components | Range | Use Case |
+|-------|-----------|-------|----------|
+| sRGB | R, G, B | 0-255 or 0.0-1.0 | Display, textures, UI |
+| Linear RGB | R, G, B | 0.0-1.0+ (HDR) | Rendering, lighting math |
+| HSV/HSB | H°, S%, V% | H:0-360, S:0-100, V:0-100 | Color picking (intuitive) |
+| HSL | H°, S%, L% | H:0-360, S:0-100, L:0-100 | CSS, web design |
+| OKLCH | L, C, H | Perceptual | Modern perceptual color |
+| CIE XYZ | X, Y, Z | 0.0-1.0+ | Color science reference |
+| Hex | #RRGGBB | 00-FF per channel | Web, CSS, config files |
+
+- Color picker should show multiple formats simultaneously
+- Copy color as hex, RGB tuple, or float array
+- Warn when picking non-sRGB colors for UI elements
+- Support HDR color values (>1.0) for emissive/light colors
+
+---
+
+## Part 19: Area & Volume Display
+
+| Dimension | Display Options |
+|-----------|----------------|
+| Area | m², cm², mm², ft², in², yd², acres, hectares, km² |
+| Volume | m³, cm³, mm³, L (liters), mL, gal, ft³, in³ |
+
+- Auto-select appropriate unit based on magnitude:
+  - < 0.01 m² → cm² or mm²
+  - 0.01 - 10000 m² → m²
+  - > 10000 m² → hectares or km²
+- Show area/volume in measurement tool results
+- Terrain area calculation for selected region
+- Room volume estimation for acoustic simulation preview
+
+---
+
+## Part 20: DPI / Pixels Per Unit (2D Mode)
+
+For 2D game development and UI design:
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| PPU (Pixels Per Unit) | How many pixels fit in one world unit | 100 |
+| Reference resolution | Target screen resolution | 1920x1080 |
+| Pixel grid | Snap to pixel boundaries | ON in 2D mode |
+| Sprite scale | Base scale factor for imported sprites | 1.0 |
+
+- 2D mode available in any workspace tab
+- Ortho camera with pixel-perfect grid
+- Import sprites with auto-PPU detection from image dimensions
+- Pixel snapping for crisp rendering at integer positions
+
+---
+
+## Part 21: Export Unit Mapping
+
+When exporting to different engines/formats:
+
+| Target | Expected Unit | Conversion from meters |
+|--------|--------------|----------------------|
+| Unreal Engine (.fbx) | 1 cm | × 100 |
+| Unity (.fbx/.glb) | 1 m | × 1 (none) |
+| Godot (.glb) | 1 m | × 1 (none) |
+| 3ds Max (.fbx) | System units (configurable) | Based on target setting |
+| AutoCAD (.dxf) | mm | × 1000 |
+| 3D Printing (.stl) | mm | × 1000 |
+| Web/Three.js (.glb) | 1 m | × 1 (none) |
+| Minecraft (schematic) | 1 block = 1 m | × 1, quantize to integers |
+
+- Export dialog shows unit mapping preview
+- Auto-apply scale factor on export
+- "Export for Unreal" preset: scale ×100, Z-up, FBX format
+- Warn if exported geometry is unreasonably small/large for target
+
+---
+
+## Part 22: Measurement History & Bookmarks
+
+- All measurements saved in a measurement log panel
+- Each entry: timestamp, type (distance/angle/area), value, endpoints
+- Bookmark important measurements with custom labels
+- Export measurement report as CSV or PDF
+- Compare measurements between versions (before/after editing)
+- "Pin" a measurement to keep it visible as an overlay
+
+---
+
+## Part 23: Smart Unit Detection
+
+Auto-detect likely unit system from imported files:
+
+| Clue | Detected Unit | Confidence |
+|------|--------------|------------|
+| All coordinates < 10 | Meters (game asset) | Medium |
+| All coordinates 100-10000 | Centimeters (Unreal) | High |
+| All coordinates > 100000 | Millimeters (CAD) | High |
+| File has ".dwg" extension | mm (AutoCAD) | High |
+| File has ".blend" metadata | Blender unit setting | High |
+| glTF with generator "Blender" | Meters | High |
+| FBX with Max header | Check system unit metadata | High |
+
+- Show "Detected unit: mm — does this look correct?" on import
+- Preview imported model with scale reference (human figure)
+- Allow manual override if detection is wrong
+- Remember per-source corrections for future imports
+
+---
+
+## Part 24: Construction Plane System (Rhino-inspired)
+
+| Feature | Description |
+|---------|-------------|
+| CPlane | Custom construction plane for sketching and snapping |
+| World CPlane | Default XZ ground plane |
+| Set CPlane | Click 3 points to define a custom plane |
+| Named CPlanes | Save/recall custom planes by name |
+| CPlane to Object | Align construction plane to selected face |
+| CPlane to View | Set CPlane perpendicular to current view |
+
+- Grid draws on active CPlane (not just world XZ)
+- All grid snapping relative to CPlane
+- Sketch tools (future) operate on CPlane
+- Visual indicator showing CPlane orientation
+- CPlane stored per-viewport in multi-viewport setups
 
 ---
 

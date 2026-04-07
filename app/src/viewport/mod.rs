@@ -130,7 +130,15 @@ impl ForgeEditorApp {
                 );
 
                 // Move tool hint
-                if self.tool_mode == crate::types::ToolMode::Move && self.selected_entity > 0 {
+                if self.box_select_key_held {
+                    painter.text(
+                        Pos2::new(rect.left() + 12.0, rect.top() + 30.0),
+                        Align2::LEFT_TOP,
+                        "S + Left-Drag: Box Select (release to apply)",
+                        FontId::proportional(11.0),
+                        tc!(self, accent),
+                    );
+                } else if self.tool_mode == crate::types::ToolMode::Move && self.selected_entity > 0 {
                     painter.text(
                         Pos2::new(rect.left() + 12.0, rect.top() + 30.0),
                         Align2::LEFT_TOP,
@@ -144,10 +152,10 @@ impl ForgeEditorApp {
                 let shortcut_text = "\
 RMB Drag: Orbit  |  MMB Drag: Pan  |  Scroll: Zoom
 LMB+RMB Drag: Pan  |  Alt+LMB: Orbit  |  Alt+RMB: Dolly
-Q: Select  W: Move  E: Rotate  R: Scale  |  Z: Render Style
-Move: Drag=XZ  Shift=Y  Ctrl=XY  |  G: Grid  F: Focus
-Ctrl+T: Theme  |  Ctrl+Shift+P: Commands  |  Del: Delete
-Ctrl+A: Select All  Ctrl+D: Duplicate  Ctrl+G: Group
+Q: Select  M: Move  E: Rotate  R: Scale  |  S+LMB: Box Select
+Move: Drag=XZ  Shift=Y  Ctrl=XY  |  Z: Render Style
+G: Grid  F: Focus  |  Ctrl+T: Theme  |  Ctrl+Shift+P: Commands
+Del: Delete  Ctrl+A: Select All  Ctrl+D: Duplicate  Ctrl+G: Group
 1-7: Tabs  |  Ctrl+Z: Undo  Ctrl+Shift+Z: Redo";
                 // Use contrasting color: light text on dark bg, dark text on light bg
                 let ref_color = if self.theme_manager.is_dark() {

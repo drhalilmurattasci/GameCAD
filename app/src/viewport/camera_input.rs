@@ -124,21 +124,17 @@ impl ForgeEditorApp {
             let sel = self.selected_entity;
             match self.tool_mode {
                 ToolMode::Move => {
-                    // Movement uses camera-relative directions so dragging
-                    // right always moves the object screen-right regardless
-                    // of camera orbit angle.
+                    // Compute camera-relative axes directly from position/target
+                    // so dragging right always moves the object screen-right.
                     let speed = 0.003 * cam_dist;
-                    let view = self.orbit_camera.view_matrix();
-                    // In a view matrix (column-major), the camera axes are in the ROWS:
-                    //   row 0 = right,  row 1 = up,  row 2 = -forward
-                    let r0 = view.row(0);
-                    let r2 = view.row(2);
-                    // Camera right vector (row 0 of view matrix)
-                    let cam_right = glam::Vec3::new(r0.x, r0.y, r0.z);
-                    // Camera up is world Y
+                    let cam_pos = self.orbit_camera.position();
+                    let cam_target = self.orbit_camera.target;
+                    // Forward = target - position, projected onto XZ plane
+                    let fwd_full = cam_target - cam_pos;
+                    let cam_fwd = glam::Vec3::new(fwd_full.x, 0.0, fwd_full.z).normalize_or_zero();
+                    // Right = forward cross up (world Y)
+                    let cam_right = cam_fwd.cross(glam::Vec3::Y).normalize_or_zero();
                     let cam_up = glam::Vec3::Y;
-                    // Camera forward projected onto XZ plane (negate row 2 = forward)
-                    let cam_fwd = glam::Vec3::new(-r2.x, 0.0, -r2.z).normalize_or_zero();
 
                     if modifiers.shift && !modifiers.ctrl {
                         // Shift only: vertical (Y axis) movement
@@ -174,12 +170,14 @@ impl ForgeEditorApp {
                 }
                 ToolMode::Select => {} // handled below
             }
-        } else if !modifiers.alt
-            && !modifiers.ctrl
-            && !modifiers.shift
-            && response.dragged_by(PointerButton::Primary)
-        {
-            // Box select (only when Select tool or no entity selected)
+        }
+
+        // S key: Box select mode
+        // Hold S + left-drag to draw selection box, release either to apply
+        let s_held = ctx.input(|i| i.key_down(egui::Key::S));
+        self.box_select_key_held = s_held;
+
+        if s_held && response.dragged_by(PointerButton::Primary) {
             if response.drag_started() {
                 self.box_select_start = pointer_pos;
             }
@@ -210,12 +208,15 @@ impl ForgeEditorApp {
             }
         }
 
-        if response.drag_stopped_by(PointerButton::Primary) && !modifiers.alt && !tool_active {
+        // Box select completes when S or left mouse is released
+        let box_finished = (response.drag_stopped_by(PointerButton::Primary) || !s_held)
+            && self.box_select_start.is_some();
+        if box_finished {
             if let (Some(start), Some(end)) =
                 (self.box_select_start, self.box_select_end)
             {
                 let dist = start.distance(end);
-                if dist > 10.0 {
+                if dist > 5.0 {
                     self.handle_viewport_box_select(start, end, &response.rect);
                 }
             }

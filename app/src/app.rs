@@ -45,9 +45,10 @@ pub(crate) struct ForgeEditorApp {
     pub(crate) right_click_start_pos: Option<Pos2>,
     // Selection state
     pub(crate) selected_entities: Vec<usize>,
-    // Box selection
+    // Box selection (S key held + left-drag)
     pub(crate) box_select_start: Option<Pos2>,
     pub(crate) box_select_end: Option<Pos2>,
+    pub(crate) box_select_key_held: bool,
     // Theme manager (dark/light toggle)
     pub(crate) theme_manager: ThemeManager,
     // Grid & snap (on by default)
@@ -181,6 +182,7 @@ impl Default for ForgeEditorApp {
             selected_entities: vec![1],
             box_select_start: None,
             box_select_end: None,
+            box_select_key_held: false,
             theme_manager: ThemeManager::new(),
             show_grid: true,
             snap_enabled: true,

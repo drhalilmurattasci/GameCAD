@@ -76,7 +76,7 @@ impl ToolMode {
     pub(crate) fn shortcut(self) -> &'static str {
         match self {
             ToolMode::Select => "Q",
-            ToolMode::Move => "W",
+            ToolMode::Move => "M",
             ToolMode::Rotate => "E",
             ToolMode::Scale => "R",
         }

@@ -25,7 +25,7 @@ impl ForgeEditorApp {
                 i.key_pressed(egui::Key::Num6),
                 i.key_pressed(egui::Key::Num7),
                 i.key_pressed(egui::Key::Q),
-                i.key_pressed(egui::Key::W),
+                i.key_pressed(egui::Key::M),
                 i.key_pressed(egui::Key::E),
                 i.key_pressed(egui::Key::R),
                 i.modifiers.ctrl

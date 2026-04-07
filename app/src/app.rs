@@ -184,7 +184,7 @@ impl Default for ForgeEditorApp {
             theme_manager: ThemeManager::new(),
             show_grid: true,
             snap_enabled: true,
-            snap_size: 1.0,
+            snap_size: 0.25,
         }
     }
 }

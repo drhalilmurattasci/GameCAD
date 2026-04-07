@@ -108,14 +108,37 @@ impl ForgeEditorApp {
                     );
                 }
 
-                // Active tab + render style overlay
+                // Active tab + render style + grid/snap status overlay
+                let grid_status = if self.show_grid { "Grid:ON" } else { "Grid:OFF" };
+                let snap_status = if self.snap_enabled {
+                    format!("Snap:{:.2}", self.snap_size)
+                } else {
+                    "Snap:OFF".to_string()
+                };
                 painter.text(
                     Pos2::new(rect.left() + 12.0, rect.top() + 12.0),
                     Align2::LEFT_TOP,
-                    format!("{} | {}", self.active_tab.label(), self.render_style.label()),
-                    FontId::proportional(14.0),
+                    format!(
+                        "{} | {} | {} | {}",
+                        self.active_tab.label(),
+                        self.render_style.label(),
+                        grid_status,
+                        snap_status,
+                    ),
+                    FontId::proportional(13.0),
                     tc!(self, accent),
                 );
+
+                // Move tool hint
+                if self.tool_mode == crate::types::ToolMode::Move && self.selected_entity > 0 {
+                    painter.text(
+                        Pos2::new(rect.left() + 12.0, rect.top() + 30.0),
+                        Align2::LEFT_TOP,
+                        "Drag: X+Z | Shift+Drag: Y only | Ctrl+Drag: X+Y",
+                        FontId::proportional(11.0),
+                        tc!(self, text_dim),
+                    );
+                }
 
                 // Camera info overlay
                 let cam = &self.orbit_camera;

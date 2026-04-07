@@ -112,15 +112,22 @@ impl ForgeEditorApp {
             let sel = self.selected_entity;
             match self.tool_mode {
                 ToolMode::Move => {
+                    // Left-drag: X (horizontal) + Z (vertical drag)
+                    // Ctrl+drag: X (horizontal) + Y (vertical drag, i.e. up/down)
+                    // Shift+drag: Y axis only (up/down)
                     let speed = 0.003 * cam_dist;
-                    self.transforms[sel][0] += delta.x * speed;
-                    if modifiers.shift {
+                    if modifiers.shift && !modifiers.ctrl {
+                        // Shift only: vertical (Y axis) movement
+                        self.transforms[sel][1] -= delta.y * speed;
+                    } else if modifiers.ctrl {
+                        // Ctrl: horizontal X + vertical Y (up/down)
+                        self.transforms[sel][0] += delta.x * speed;
                         self.transforms[sel][1] -= delta.y * speed;
                     } else {
+                        // Default: horizontal X + depth Z
+                        self.transforms[sel][0] += delta.x * speed;
                         self.transforms[sel][2] += delta.y * speed;
                     }
-                    // Snap to grid if enabled (only snap on drag stop, not every frame)
-                    // Continuous snapping handled in drag_stopped below
                 }
                 ToolMode::Rotate => {
                     let speed = 0.15;

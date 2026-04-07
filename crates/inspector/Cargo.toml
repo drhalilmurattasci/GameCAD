@@ -1,0 +1,11 @@
+[package]
+name = "inspector"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+forge_core = { path = "../core", package = "core" }
+forge_scene = { path = "../scene", package = "scene" }
+egui = { workspace = true }
+glam = { workspace = true }
+serde = { workspace = true }

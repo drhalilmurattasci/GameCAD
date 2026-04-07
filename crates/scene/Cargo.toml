@@ -1,0 +1,14 @@
+[package]
+name = "scene"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+forge_core = { path = "../core", package = "core" }
+glam = { workspace = true }
+serde = { workspace = true }
+ron = { workspace = true }
+uuid = { workspace = true }
+tracing = { workspace = true }
+anyhow = { workspace = true }
+indexmap = { workspace = true }

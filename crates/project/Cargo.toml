@@ -1,0 +1,6 @@
+[package]
+name = "project"
+version.workspace = true
+edition = "2021"
+
+[dependencies]

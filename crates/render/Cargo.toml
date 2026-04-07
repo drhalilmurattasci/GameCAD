@@ -1,0 +1,18 @@
+[package]
+name = "render"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+forge_core = { path = "../core", package = "core" }
+wgpu = { workspace = true }
+glam = { workspace = true }
+bytemuck = { workspace = true }
+gltf = { workspace = true }
+image = { workspace = true }
+serde = { workspace = true }
+tracing = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+pollster = { workspace = true }
+parking_lot = { workspace = true }

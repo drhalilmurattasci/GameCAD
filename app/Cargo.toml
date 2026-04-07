@@ -1,0 +1,13 @@
+[package]
+name = "forge-editor-app"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+egui = { workspace = true }
+eframe = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+forge_viewport = { path = "../crates/viewport", package = "viewport" }
+forge_ui = { path = "../crates/ui", package = "ui" }
+glam = { workspace = true }

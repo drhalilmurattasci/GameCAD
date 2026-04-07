@@ -110,32 +110,17 @@ impl ForgeEditorApp {
             let delta = response.drag_delta();
             let cam_dist = self.orbit_camera.distance;
             let sel = self.selected_entity;
-            let names = self.flatten_outliner_names();
-            let ent_name = names.get(sel).cloned().unwrap_or_default();
             match self.tool_mode {
                 ToolMode::Move => {
-                    let speed = 0.002 * cam_dist;
+                    let speed = 0.003 * cam_dist;
                     self.transforms[sel][0] += delta.x * speed;
                     if modifiers.shift {
                         self.transforms[sel][1] -= delta.y * speed;
                     } else {
                         self.transforms[sel][2] += delta.y * speed;
                     }
-                    // Snap to grid if enabled
-                    if self.snap_enabled {
-                        let s = self.snap_size;
-                        self.transforms[sel][0] = (self.transforms[sel][0] / s).round() * s;
-                        self.transforms[sel][1] = (self.transforms[sel][1] / s).round() * s;
-                        self.transforms[sel][2] = (self.transforms[sel][2] / s).round() * s;
-                    }
-                    let t = &self.transforms[sel];
-                    self.console_log.push(LogEntry {
-                        level: LogLevel::Info,
-                        message: format!(
-                            "Moved {} to ({:.2}, {:.2}, {:.2})",
-                            ent_name, t[0], t[1], t[2]
-                        ),
-                    });
+                    // Snap to grid if enabled (only snap on drag stop, not every frame)
+                    // Continuous snapping handled in drag_stopped below
                 }
                 ToolMode::Rotate => {
                     let speed = 0.15;
@@ -145,20 +130,12 @@ impl ForgeEditorApp {
                         self.transforms[sel][4] += delta.x * speed;
                         self.transforms[sel][3] += delta.y * speed;
                     }
-                    self.console_log.push(LogEntry {
-                        level: LogLevel::Info,
-                        message: format!("Rotated {}", ent_name),
-                    });
                 }
                 ToolMode::Scale => {
                     let factor = 1.0 + delta.x * 0.002;
                     self.transforms[sel][6] = (self.transforms[sel][6] * factor).max(0.01);
                     self.transforms[sel][7] = (self.transforms[sel][7] * factor).max(0.01);
                     self.transforms[sel][8] = (self.transforms[sel][8] * factor).max(0.01);
-                    self.console_log.push(LogEntry {
-                        level: LogLevel::Info,
-                        message: format!("Scaled {}", ent_name),
-                    });
                 }
                 ToolMode::Select => {} // handled below
             }
@@ -173,7 +150,32 @@ impl ForgeEditorApp {
             }
             self.box_select_end = pointer_pos;
         }
-        if response.drag_stopped_by(PointerButton::Primary) && !modifiers.alt {
+        // Tool drag finished — snap + log once
+        if tool_active && response.drag_stopped_by(PointerButton::Primary) {
+            let sel = self.selected_entity;
+            let names = self.flatten_outliner_names();
+            let ent_name = names.get(sel).cloned().unwrap_or_default();
+            // Snap to grid on release
+            if self.snap_enabled && self.tool_mode == ToolMode::Move {
+                let s = self.snap_size;
+                self.transforms[sel][0] = (self.transforms[sel][0] / s).round() * s;
+                self.transforms[sel][1] = (self.transforms[sel][1] / s).round() * s;
+                self.transforms[sel][2] = (self.transforms[sel][2] / s).round() * s;
+            }
+            // Log final position/rotation/scale once
+            let t = &self.transforms[sel];
+            let msg = match self.tool_mode {
+                ToolMode::Move => format!("Moved {} to ({:.2}, {:.2}, {:.2})", ent_name, t[0], t[1], t[2]),
+                ToolMode::Rotate => format!("Rotated {} to ({:.1}, {:.1}, {:.1})°", ent_name, t[3], t[4], t[5]),
+                ToolMode::Scale => format!("Scaled {} to ({:.2}, {:.2}, {:.2})", ent_name, t[6], t[7], t[8]),
+                ToolMode::Select => String::new(),
+            };
+            if !msg.is_empty() {
+                self.console_log.push(LogEntry { level: LogLevel::Info, message: msg });
+            }
+        }
+
+        if response.drag_stopped_by(PointerButton::Primary) && !modifiers.alt && !tool_active {
             if let (Some(start), Some(end)) =
                 (self.box_select_start, self.box_select_end)
             {

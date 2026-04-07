@@ -114,7 +114,7 @@ impl ForgeEditorApp {
             let ent_name = names.get(sel).cloned().unwrap_or_default();
             match self.tool_mode {
                 ToolMode::Move => {
-                    let speed = 0.01 * cam_dist;
+                    let speed = 0.002 * cam_dist;
                     self.transforms[sel][0] += delta.x * speed;
                     if modifiers.shift {
                         self.transforms[sel][1] -= delta.y * speed;
@@ -138,7 +138,7 @@ impl ForgeEditorApp {
                     });
                 }
                 ToolMode::Rotate => {
-                    let speed = 0.5;
+                    let speed = 0.15;
                     if modifiers.shift {
                         self.transforms[sel][5] += delta.x * speed;
                     } else {
@@ -151,7 +151,7 @@ impl ForgeEditorApp {
                     });
                 }
                 ToolMode::Scale => {
-                    let factor = 1.0 + delta.x * 0.005;
+                    let factor = 1.0 + delta.x * 0.002;
                     self.transforms[sel][6] = (self.transforms[sel][6] * factor).max(0.01);
                     self.transforms[sel][7] = (self.transforms[sel][7] * factor).max(0.01);
                     self.transforms[sel][8] = (self.transforms[sel][8] * factor).max(0.01);

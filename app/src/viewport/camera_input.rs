@@ -140,34 +140,31 @@ impl ForgeEditorApp {
             let sel = self.selected_entity;
             match self.tool_mode {
                 ToolMode::Move => {
-                    // Compute camera-relative axes directly from position/target
-                    // so dragging right always moves the object screen-right.
+                    // Camera-relative movement on the XZ ground plane.
+                    // Object stays at its current Y unless Shift or Ctrl is held.
                     let speed = 0.003 * cam_dist;
                     let cam_pos = self.orbit_camera.position();
                     let cam_target = self.orbit_camera.target;
-                    // Forward = target - position, projected onto XZ plane
                     let fwd_full = cam_target - cam_pos;
                     let cam_fwd = glam::Vec3::new(fwd_full.x, 0.0, fwd_full.z).normalize_or_zero();
-                    // Right = forward cross up (world Y)
                     let cam_right = cam_fwd.cross(glam::Vec3::Y).normalize_or_zero();
-                    let cam_up = glam::Vec3::Y;
 
                     if modifiers.shift && !modifiers.ctrl {
-                        // Shift only: vertical (Y axis) movement
+                        // Shift: Y axis only (up/down)
                         self.transforms[sel][1] -= delta.y * speed;
                     } else if modifiers.ctrl {
-                        // Ctrl: camera-right + vertical Y (up/down)
-                        let move_vec = cam_right * delta.x * speed + cam_up * (-delta.y * speed);
-                        self.transforms[sel][0] += move_vec.x;
-                        self.transforms[sel][1] += move_vec.y;
-                        self.transforms[sel][2] += move_vec.z;
+                        // Ctrl: camera-right (X) + world up (Y)
+                        let dx = cam_right * delta.x * speed;
+                        self.transforms[sel][0] += dx.x;
+                        self.transforms[sel][2] += dx.z;
+                        self.transforms[sel][1] -= delta.y * speed;
                     } else {
-                        // Default: camera-right + camera-forward (XZ plane)
-                        // Negate delta.y: mouse-forward (negative y) = move toward camera target
-                        let move_vec = cam_right * delta.x * speed + cam_fwd * (-delta.y) * speed;
-                        self.transforms[sel][0] += move_vec.x;
-                        self.transforms[sel][1] += move_vec.y;
-                        self.transforms[sel][2] += move_vec.z;
+                        // Default: camera-right + camera-forward, XZ plane ONLY
+                        // Y is never modified in default mode
+                        let move_xz = cam_right * delta.x * speed + cam_fwd * (-delta.y) * speed;
+                        self.transforms[sel][0] += move_xz.x;
+                        // skip Y — stay on same height
+                        self.transforms[sel][2] += move_xz.z;
                     }
                 }
                 ToolMode::Rotate => {
@@ -205,12 +202,16 @@ impl ForgeEditorApp {
             let sel = self.selected_entity;
             let names = self.flatten_outliner_names();
             let ent_name = names.get(sel).cloned().unwrap_or_default();
-            // Snap to grid on release
+            // Snap to grid on release — only snap axes that were moved
             if self.snap_enabled && self.tool_mode == ToolMode::Move {
                 let s = self.snap_size;
+                // Always snap X and Z (moved in all modes)
                 self.transforms[sel][0] = (self.transforms[sel][0] / s).round() * s;
-                self.transforms[sel][1] = (self.transforms[sel][1] / s).round() * s;
                 self.transforms[sel][2] = (self.transforms[sel][2] / s).round() * s;
+                // Only snap Y if Shift or Ctrl was held (Y was intentionally moved)
+                if modifiers.shift || modifiers.ctrl {
+                    self.transforms[sel][1] = (self.transforms[sel][1] / s).round() * s;
+                }
             }
             // Log final position/rotation/scale once
             let t = &self.transforms[sel];

@@ -16,9 +16,10 @@ impl ForgeEditorApp {
         rect: &Rect,
         grid_color: Color32,
         major_color: Color32,
+        grid_spacing: f32,
     ) {
-        let grid_extent: i32 = 20;
-        let spacing = 1.0_f32;
+        let grid_extent: i32 = (20.0 / grid_spacing.max(0.1)) as i32;
+        let spacing = grid_spacing.max(0.1);
 
         let minor_stroke = Stroke::new(1.0, grid_color);
         let major_stroke = Stroke::new(1.2, major_color);

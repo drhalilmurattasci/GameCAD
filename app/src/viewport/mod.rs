@@ -79,7 +79,7 @@ impl ForgeEditorApp {
                 if self.show_grid {
                     let grid_c = self.theme_manager.grid_color();
                     let grid_mc = self.theme_manager.grid_major_color();
-                    Self::draw_perspective_grid(&painter, &vp, &rect, grid_c, grid_mc);
+                    Self::draw_perspective_grid(&painter, &vp, &rect, grid_c, grid_mc, self.grid_size);
                 }
 
                 // ---- Draw 3D scene objects with projection ----

@@ -53,6 +53,7 @@ pub(crate) struct ForgeEditorApp {
     pub(crate) theme_manager: ThemeManager,
     // Grid & snap (on by default)
     pub(crate) show_grid: bool,
+    pub(crate) grid_size: f32,
     pub(crate) snap_enabled: bool,
     pub(crate) snap_size: f32,
 }
@@ -185,6 +186,7 @@ impl Default for ForgeEditorApp {
             box_select_key_held: false,
             theme_manager: ThemeManager::new(),
             show_grid: true,
+            grid_size: 1.0,
             snap_enabled: true,
             snap_size: 0.5,
         }

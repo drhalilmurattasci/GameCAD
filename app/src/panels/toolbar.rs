@@ -125,11 +125,11 @@ impl ForgeEditorApp {
                 ui.separator();
                 ui.add_space(8.0);
 
-                // Grid toggle
-                let grid_label = if self.show_grid { "\u{25A6} Grid" } else { "\u{25A1} Grid" };
+                // Grid toggle + size
+                let grid_label = if self.show_grid { "\u{25A6}" } else { "\u{25A1}" };
                 let grid_btn = egui::Button::new(
                     RichText::new(grid_label)
-                        .font(FontId::proportional(12.0))
+                        .font(FontId::proportional(14.0))
                         .color(if self.show_grid { tc!(self, accent) } else { tc!(self, text_dim) }),
                 );
                 if ui.add(grid_btn).on_hover_text("Toggle grid (G)").clicked() {
@@ -139,12 +139,22 @@ impl ForgeEditorApp {
                         message: format!("Grid {}", if self.show_grid { "ON" } else { "OFF" }),
                     });
                 }
+                ui.label(RichText::new("Grid:").font(FontId::proportional(11.0)).color(tc!(self, text_dim)));
+                ui.add(
+                    egui::DragValue::new(&mut self.grid_size)
+                        .speed(0.1)
+                        .range(0.1..=100.0)
+                        .max_decimals(1)
+                        .suffix("m"),
+                ).on_hover_text("Grid spacing");
 
-                // Snap toggle
-                let snap_label = if self.snap_enabled { "\u{1F9F2} Snap" } else { "\u{25CB} Snap" };
+                ui.add_space(4.0);
+
+                // Snap toggle + size
+                let snap_label = if self.snap_enabled { "\u{1F9F2}" } else { "\u{25CB}" };
                 let snap_btn = egui::Button::new(
                     RichText::new(snap_label)
-                        .font(FontId::proportional(12.0))
+                        .font(FontId::proportional(14.0))
                         .color(if self.snap_enabled { tc!(self, accent) } else { tc!(self, text_dim) }),
                 );
                 if ui.add(snap_btn).on_hover_text("Toggle snap").clicked() {
@@ -154,6 +164,14 @@ impl ForgeEditorApp {
                         message: format!("Snap {}", if self.snap_enabled { "ON" } else { "OFF" }),
                     });
                 }
+                ui.label(RichText::new("Snap:").font(FontId::proportional(11.0)).color(tc!(self, text_dim)));
+                ui.add(
+                    egui::DragValue::new(&mut self.snap_size)
+                        .speed(0.05)
+                        .range(0.01..=50.0)
+                        .max_decimals(2)
+                        .suffix("m"),
+                ).on_hover_text("Snap increment");
 
                 ui.add_space(8.0);
                 ui.separator();

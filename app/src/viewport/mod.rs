@@ -149,19 +149,20 @@ Move: Drag=XZ  Shift=Y  Ctrl=XY  |  G: Grid  F: Focus
 Ctrl+T: Theme  |  Ctrl+Shift+P: Commands  |  Del: Delete
 Ctrl+A: Select All  Ctrl+D: Duplicate  Ctrl+G: Group
 1-7: Tabs  |  Ctrl+Z: Undo  Ctrl+Shift+Z: Redo";
-                let line_h = 10.0;
+                // Use contrasting color: light text on dark bg, dark text on light bg
+                let ref_color = if self.theme_manager.is_dark() {
+                    Color32::from_rgba_premultiplied(255, 255, 255, 180)
+                } else {
+                    Color32::from_rgba_premultiplied(0, 0, 0, 180)
+                };
+                let line_h = 14.0;
                 for (i, line) in shortcut_text.lines().enumerate() {
                     painter.text(
-                        Pos2::new(rect.right() - 8.0, rect.top() + 8.0 + i as f32 * line_h),
+                        Pos2::new(rect.right() - 10.0, rect.top() + 10.0 + i as f32 * line_h),
                         Align2::RIGHT_TOP,
                         line,
-                        FontId::proportional(9.0),
-                        Color32::from_rgba_premultiplied(
-                            tc!(self, text_dim).r(),
-                            tc!(self, text_dim).g(),
-                            tc!(self, text_dim).b(),
-                            100,
-                        ),
+                        FontId::proportional(11.0),
+                        ref_color,
                     );
                 }
 

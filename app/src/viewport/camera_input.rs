@@ -129,12 +129,16 @@ impl ForgeEditorApp {
                     // of camera orbit angle.
                     let speed = 0.003 * cam_dist;
                     let view = self.orbit_camera.view_matrix();
-                    // Camera right vector (first row of view matrix)
-                    let cam_right = glam::Vec3::new(view.col(0).x, view.col(0).y, view.col(0).z);
+                    // In a view matrix (column-major), the camera axes are in the ROWS:
+                    //   row 0 = right,  row 1 = up,  row 2 = -forward
+                    let r0 = view.row(0);
+                    let r2 = view.row(2);
+                    // Camera right vector (row 0 of view matrix)
+                    let cam_right = glam::Vec3::new(r0.x, r0.y, r0.z);
                     // Camera up is world Y
                     let cam_up = glam::Vec3::Y;
-                    // Camera forward projected onto XZ plane (for depth movement)
-                    let cam_fwd = glam::Vec3::new(-view.col(2).x, 0.0, -view.col(2).z).normalize_or_zero();
+                    // Camera forward projected onto XZ plane (negate row 2 = forward)
+                    let cam_fwd = glam::Vec3::new(-r2.x, 0.0, -r2.z).normalize_or_zero();
 
                     if modifiers.shift && !modifiers.ctrl {
                         // Shift only: vertical (Y axis) movement

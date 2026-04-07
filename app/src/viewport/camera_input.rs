@@ -124,21 +124,33 @@ impl ForgeEditorApp {
             let sel = self.selected_entity;
             match self.tool_mode {
                 ToolMode::Move => {
-                    // Left-drag: X (horizontal) + Z (vertical drag)
-                    // Ctrl+drag: X (horizontal) + Y (vertical drag, i.e. up/down)
-                    // Shift+drag: Y axis only (up/down)
+                    // Movement uses camera-relative directions so dragging
+                    // right always moves the object screen-right regardless
+                    // of camera orbit angle.
                     let speed = 0.003 * cam_dist;
+                    let view = self.orbit_camera.view_matrix();
+                    // Camera right vector (first row of view matrix)
+                    let cam_right = glam::Vec3::new(view.col(0).x, view.col(0).y, view.col(0).z);
+                    // Camera up is world Y
+                    let cam_up = glam::Vec3::Y;
+                    // Camera forward projected onto XZ plane (for depth movement)
+                    let cam_fwd = glam::Vec3::new(-view.col(2).x, 0.0, -view.col(2).z).normalize_or_zero();
+
                     if modifiers.shift && !modifiers.ctrl {
                         // Shift only: vertical (Y axis) movement
                         self.transforms[sel][1] -= delta.y * speed;
                     } else if modifiers.ctrl {
-                        // Ctrl: horizontal X + vertical Y (up/down)
-                        self.transforms[sel][0] += delta.x * speed;
-                        self.transforms[sel][1] -= delta.y * speed;
+                        // Ctrl: camera-right + vertical Y (up/down)
+                        let move_vec = cam_right * delta.x * speed + cam_up * (-delta.y * speed);
+                        self.transforms[sel][0] += move_vec.x;
+                        self.transforms[sel][1] += move_vec.y;
+                        self.transforms[sel][2] += move_vec.z;
                     } else {
-                        // Default: horizontal X + depth Z
-                        self.transforms[sel][0] += delta.x * speed;
-                        self.transforms[sel][2] += delta.y * speed;
+                        // Default: camera-right + camera-forward (XZ plane)
+                        let move_vec = cam_right * delta.x * speed + cam_fwd * delta.y * speed;
+                        self.transforms[sel][0] += move_vec.x;
+                        self.transforms[sel][1] += move_vec.y;
+                        self.transforms[sel][2] += move_vec.z;
                     }
                 }
                 ToolMode::Rotate => {

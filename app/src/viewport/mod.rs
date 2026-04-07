@@ -140,6 +140,31 @@ impl ForgeEditorApp {
                     );
                 }
 
+                // Shortcut reference (top-right corner, tiny font)
+                let shortcut_text = "\
+RMB Drag: Orbit  |  MMB Drag: Pan  |  Scroll: Zoom
+LMB+RMB Drag: Pan  |  Alt+LMB: Orbit  |  Alt+RMB: Dolly
+Q: Select  W: Move  E: Rotate  R: Scale  |  Z: Render Style
+Move: Drag=XZ  Shift=Y  Ctrl=XY  |  G: Grid  F: Focus
+Ctrl+T: Theme  |  Ctrl+Shift+P: Commands  |  Del: Delete
+Ctrl+A: Select All  Ctrl+D: Duplicate  Ctrl+G: Group
+1-7: Tabs  |  Ctrl+Z: Undo  Ctrl+Shift+Z: Redo";
+                let line_h = 10.0;
+                for (i, line) in shortcut_text.lines().enumerate() {
+                    painter.text(
+                        Pos2::new(rect.right() - 8.0, rect.top() + 8.0 + i as f32 * line_h),
+                        Align2::RIGHT_TOP,
+                        line,
+                        FontId::proportional(9.0),
+                        Color32::from_rgba_premultiplied(
+                            tc!(self, text_dim).r(),
+                            tc!(self, text_dim).g(),
+                            tc!(self, text_dim).b(),
+                            100,
+                        ),
+                    );
+                }
+
                 // Camera info overlay
                 let cam = &self.orbit_camera;
                 let cam_info = format!(

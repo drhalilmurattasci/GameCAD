@@ -98,6 +98,18 @@ impl ForgeEditorApp {
             });
         }
 
+        // L (no modifiers): Cycle active layer
+        if ctx.input(|i| {
+            i.key_pressed(egui::Key::L) && !i.modifiers.command && !i.modifiers.shift
+        }) {
+            self.active_layer = (self.active_layer + 1) % self.layers.len();
+            let name = self.layers[self.active_layer].name.clone();
+            self.console_log.push(LogEntry {
+                level: LogLevel::Info,
+                message: format!("Active layer: {}", name),
+            });
+        }
+
         // Z (no modifiers): Cycle render style
         if ctx.input(|i| {
             i.key_pressed(egui::Key::Z) && !i.modifiers.command && !i.modifiers.shift

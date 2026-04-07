@@ -171,7 +171,7 @@ RMB Drag: Orbit  |  MMB Drag: Pan  |  Scroll: Zoom
 LMB+RMB Drag: Pan  |  Alt+LMB: Orbit  |  Alt+RMB: Dolly
 Q: Select  M: Move  E: Rotate  R: Scale  |  S+LMB: Box Select
 Move: Drag=XZ  Shift=Y  Ctrl=XY  |  Z: Render Style
-G: Grid  F: Focus  |  Ctrl+T: Theme  |  Ctrl+Shift+P: Commands
+G: Grid  F: Focus  L: Layer  |  Ctrl+T: Theme  |  Ctrl+Shift+P: Cmds
 Del: Delete  Ctrl+A: Select All  Ctrl+D: Duplicate  Ctrl+G: Group
 1-7: Tabs  |  Ctrl+Z: Undo  Ctrl+Shift+Z: Redo";
                 // Use contrasting color: light text on dark bg, dark text on light bg

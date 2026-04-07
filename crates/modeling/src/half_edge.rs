@@ -125,7 +125,7 @@ impl EditMesh {
     ) -> Self {
         assert_eq!(positions.len(), normals.len());
         assert_eq!(positions.len(), uvs.len());
-        assert!(indices.len() % 3 == 0);
+        assert!(indices.len().is_multiple_of(3));
 
         let vertex_count = positions.len();
         let tri_count = indices.len() / 3;
@@ -156,12 +156,12 @@ impl EditMesh {
             let tri_verts = [i0, i1, i2];
 
             // Create 3 half-edges for this triangle.
-            for k in 0..3 {
+            for (k, &vert) in tri_verts.iter().enumerate() {
                 let he = HalfEdge {
                     next: base + (k + 1) % 3,
                     prev: base + (k + 2) % 3,
                     twin: INVALID_ID,
-                    vertex: tri_verts[k],
+                    vertex: vert,
                     face: face_id,
                 };
                 half_edges.push(he);
@@ -283,21 +283,21 @@ impl EditMesh {
         let base = self.half_edges.len();
 
         // Create half-edges.
-        for i in 0..n {
+        for (i, &vid) in vertex_ids.iter().enumerate() {
             let he = HalfEdge {
                 next: base + (i + 1) % n,
                 prev: base + (i + n - 1) % n,
                 twin: INVALID_ID,
-                vertex: vertex_ids[i],
+                vertex: vid,
                 face: face_id,
             };
             self.half_edges.push(he);
         }
 
         // Set vertex edge references.
-        for i in 0..n {
-            if self.vertices[vertex_ids[i]].edge == INVALID_ID {
-                self.vertices[vertex_ids[i]].edge = base + i;
+        for (i, &vid) in vertex_ids.iter().enumerate() {
+            if self.vertices[vid].edge == INVALID_ID {
+                self.vertices[vid].edge = base + i;
             }
         }
 

@@ -13,21 +13,12 @@ use super::types::{NodeId, PinId};
 // ─────────────────────────────────────────────────────────────────────
 
 /// The full node graph for a material.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct MaterialGraph {
     /// All nodes in the graph, keyed by their unique ID.
     pub nodes: HashMap<NodeId, MaterialNode>,
     /// All connections (wires) between node pins.
     pub connections: Vec<Connection>,
-}
-
-impl Default for MaterialGraph {
-    fn default() -> Self {
-        Self {
-            nodes: HashMap::new(),
-            connections: Vec::new(),
-        }
-    }
 }
 
 impl MaterialGraph {

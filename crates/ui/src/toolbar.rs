@@ -49,9 +49,10 @@ impl ToolbarButton {
 
             let response = ui.add(btn);
             if !self.tooltip.is_empty() {
-                response.clone().on_hover_text(&self.tooltip);
+                response.on_hover_text(&self.tooltip)
+            } else {
+                response
             }
-            response
         })
         .inner
     }

@@ -47,7 +47,7 @@ impl AssetDatabase {
             if path
                 .file_name()
                 .and_then(|n| n.to_str())
-                .map_or(false, |n| n.ends_with(".meta.toml"))
+                .is_some_and(|n| n.ends_with(".meta.toml"))
             {
                 continue;
             }
@@ -67,13 +67,13 @@ impl AssetDatabase {
                     debug!("Creating new metadata for {}", path.display());
                     let mut meta = AssetMetadata::new(asset_type, path.to_path_buf());
                     // Try to read last modified time.
-                    if let Ok(fs_meta) = std::fs::metadata(path) {
-                        if let Ok(modified) = fs_meta.modified() {
-                            meta.last_modified = modified
-                                .duration_since(std::time::UNIX_EPOCH)
-                                .unwrap_or_default()
-                                .as_secs();
-                        }
+                    if let Ok(fs_meta) = std::fs::metadata(path)
+                        && let Ok(modified) = fs_meta.modified()
+                    {
+                        meta.last_modified = modified
+                            .duration_since(std::time::UNIX_EPOCH)
+                            .unwrap_or_default()
+                            .as_secs();
                     }
                     meta
                 }

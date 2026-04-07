@@ -33,8 +33,7 @@ pub fn subdivide(mesh: &mut EditMesh) -> Result<()> {
     // Step 2: Compute edge points.
     // Map (min_v, max_v) -> (edge midpoint, [adjacent face ids])
     let mut edge_data: HashMap<(VertexId, VertexId), (Vec3, Vec<FaceId>)> = HashMap::new();
-    for fid in 0..old_face_count {
-        let verts = &face_vert_lists[fid];
+    for (fid, verts) in face_vert_lists.iter().enumerate() {
         let n = verts.len();
         for i in 0..n {
             let v0 = verts[i];
@@ -64,8 +63,7 @@ pub fn subdivide(mesh: &mut EditMesh) -> Result<()> {
     let mut vert_faces: Vec<Vec<FaceId>> = vec![Vec::new(); old_vertex_count];
     let mut vert_edges: Vec<HashSet<(VertexId, VertexId)>> =
         vec![HashSet::new(); old_vertex_count];
-    for fid in 0..old_face_count {
-        let verts = &face_vert_lists[fid];
+    for (fid, verts) in face_vert_lists.iter().enumerate() {
         let n = verts.len();
         for i in 0..n {
             let v0 = verts[i];
@@ -105,15 +103,14 @@ pub fn subdivide(mesh: &mut EditMesh) -> Result<()> {
     let mut new_mesh = EditMesh::new();
 
     // Add updated original vertices.
-    for vid in 0..old_vertex_count {
+    for (vid, new_pos) in new_vertex_positions.iter().enumerate() {
         let v = &mesh.vertices[vid];
-        new_mesh.add_vertex(new_vertex_positions[vid], v.normal, v.uv);
+        new_mesh.add_vertex(*new_pos, v.normal, v.uv);
     }
 
     // Add face point vertices.
     let mut face_point_ids: Vec<VertexId> = Vec::with_capacity(old_face_count);
-    for fid in 0..old_face_count {
-        let fp = face_points[fid];
+    for (fid, &fp) in face_points.iter().enumerate() {
         let normal = mesh.faces[fid].normal;
         let id = new_mesh.add_vertex(fp, normal, Vec2::new(0.5, 0.5));
         face_point_ids.push(id);

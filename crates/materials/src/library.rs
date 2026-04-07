@@ -85,7 +85,7 @@ impl MaterialLibrary {
             if file_path
                 .file_name()
                 .and_then(|n| n.to_str())
-                .map_or(false, |n| n.ends_with(".material.toml"))
+                .is_some_and(|n| n.ends_with(".material.toml"))
             {
                 match load_material(&file_path) {
                     Ok(mat) => {

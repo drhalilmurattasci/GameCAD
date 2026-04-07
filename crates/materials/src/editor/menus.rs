@@ -63,8 +63,9 @@ pub(crate) fn canvas_context_menu(
     });
 
     // Node context menu (right-click on selected node)
-    if let Some(sel_id) = state.selected_node {
-        if state.graph.nodes.contains_key(&sel_id) {
+    if let Some(sel_id) = state.selected_node
+        && state.graph.nodes.contains_key(&sel_id)
+    {
             let node = &state.graph.nodes[&sel_id];
             let sp = graph_to_screen(node.position, state.camera_offset, state.zoom, canvas_min);
             let h = node_height(node) * state.zoom;
@@ -99,6 +100,5 @@ pub(crate) fn canvas_context_menu(
                     ui.close_menu();
                 }
             });
-        }
     }
 }

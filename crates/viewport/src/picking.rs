@@ -42,16 +42,11 @@ pub fn pick_entity(ray: &Ray, entities: &[(EntityId, AABB)]) -> Option<(EntityId
     let mut closest: Option<(EntityId, f32)> = None;
 
     for (entity, aabb) in entities {
-        if let Some(t) = ray_aabb_intersect(ray, aabb) {
-            if t >= 0.0 {
-                let dominated = match closest {
-                    Some((_, prev_t)) => t < prev_t,
-                    None => true,
-                };
-                if dominated {
-                    closest = Some((*entity, t));
-                }
-            }
+        if let Some(t) = ray_aabb_intersect(ray, aabb)
+            && t >= 0.0
+            && closest.is_none_or(|(_, prev_t)| t < prev_t)
+        {
+            closest = Some((*entity, t));
         }
     }
 

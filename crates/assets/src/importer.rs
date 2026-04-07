@@ -41,13 +41,13 @@ pub fn import_file(path: &Path, database: &mut AssetDatabase) -> Result<ImportRe
         Some(existing) => existing,
         None => {
             let mut meta = AssetMetadata::new(asset_type, path.to_path_buf());
-            if let Ok(fs_meta) = std::fs::metadata(path) {
-                if let Ok(modified) = fs_meta.modified() {
-                    meta.last_modified = modified
-                        .duration_since(std::time::UNIX_EPOCH)
-                        .unwrap_or_default()
-                        .as_secs();
-                }
+            if let Ok(fs_meta) = std::fs::metadata(path)
+                && let Ok(modified) = fs_meta.modified()
+            {
+                meta.last_modified = modified
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_secs();
             }
             // Persist the new sidecar.
             if let Err(e) = meta.save() {

@@ -1,6 +1,7 @@
 //! Node-based material graph with typed pins, connections, and validation.
 
 pub mod connection;
+#[allow(clippy::module_inception)]
 pub mod graph;
 pub mod node;
 pub mod types;

@@ -106,10 +106,10 @@ impl Gizmo {
         for (axis, dir) in axes.iter().zip(dirs.iter()) {
             let handle_end = self.position + *dir * handle_length * self.scale;
             let dist = ray_segment_distance(ray_origin, ray_dir, self.position, handle_end);
-            if dist < threshold * self.scale {
-                if best.is_none() || dist < best.unwrap().1 {
-                    best = Some((*axis, dist));
-                }
+            if dist < threshold * self.scale
+                && best.is_none_or(|(_, prev_dist)| dist < prev_dist)
+            {
+                best = Some((*axis, dist));
             }
         }
 
@@ -189,7 +189,8 @@ fn ray_segment_distance(
     let denom = a * c - b * b;
 
     let (s, t) = if denom < 1e-7 {
-        (0.0, if b > c { d / b } else { e / c })
+        let t_raw = if b > c { d / b } else { e / c };
+        (0.0, t_raw.clamp(0.0, 1.0))
     } else {
         let s = (b * e - c * d) / denom;
         let t = (a * e - b * d) / denom;

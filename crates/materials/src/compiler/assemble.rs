@@ -28,7 +28,7 @@ pub fn compile_graph(graph: &MaterialGraph) -> Result<String> {
             graph
                 .nodes
                 .get(id)
-                .map_or(false, |n| n.kind == NodeKind::PbrOutput)
+                .is_some_and(|n| n.kind == NodeKind::PbrOutput)
         })
         .copied()
         .context("Graph has no PBR Output node")?;
@@ -59,12 +59,11 @@ pub fn compile_graph(graph: &MaterialGraph) -> Result<String> {
             let pin = node.pins.iter().find(|p| {
                 p.name == pin_name && p.direction == PinDirection::Input
             });
-            if let Some(pin) = pin {
-                if let Some(&(from_node, from_pin)) = conn_map.get(&(nid, pin.id)) {
-                    if let Some(var) = pin_vars.get(&(from_node, from_pin)) {
-                        return var.clone();
-                    }
-                }
+            if let Some(pin) = pin
+                && let Some(&(from_node, from_pin)) = conn_map.get(&(nid, pin.id))
+                && let Some(var) = pin_vars.get(&(from_node, from_pin))
+            {
+                return var.clone();
             }
             // Return a default literal based on what this node kind expects.
             default_value_for_input(node.kind, pin_name)
@@ -262,12 +261,11 @@ pub fn compile_graph(graph: &MaterialGraph) -> Result<String> {
         let pin = output_node.pins.iter().find(|p| {
             p.name == pin_name && p.direction == PinDirection::Input
         });
-        if let Some(pin) = pin {
-            if let Some(&(from_node, from_pin)) = conn_map.get(&(output_id, pin.id)) {
-                if let Some(var) = pin_vars.get(&(from_node, from_pin)) {
-                    return var.clone();
-                }
-            }
+        if let Some(pin) = pin
+            && let Some(&(from_node, from_pin)) = conn_map.get(&(output_id, pin.id))
+            && let Some(var) = pin_vars.get(&(from_node, from_pin))
+        {
+            return var.clone();
         }
         default.to_string()
     };

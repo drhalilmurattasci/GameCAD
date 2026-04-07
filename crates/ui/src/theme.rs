@@ -359,9 +359,10 @@ fn hex(v: u32) -> Color32 {
 // Legacy compat
 // ─────────────────────────────────────────────────────────────────────
 
-/// Apply the default dark theme (backward-compatible convenience function).
+/// Apply the default theme (backward-compatible convenience function).
 ///
 /// Equivalent to `ThemeManager::new().apply_to_egui(ctx)`.
+/// Note: `ThemeManager::new()` defaults to **light** mode.
 pub fn apply_to_egui(ctx: &Context) {
     ThemeManager::new().apply_to_egui(ctx);
 }
@@ -432,11 +433,11 @@ mod tests {
     #[test]
     fn wireframe_color_differs_by_mode() {
         let mut tm = ThemeManager::new();
-        // Default is Dark
-        let dark_wire = tm.wireframe_color();
-        tm.toggle_theme();
-        // Now Light
+        // Default is Light
         let light_wire = tm.wireframe_color();
+        tm.toggle_theme();
+        // Now Dark
+        let dark_wire = tm.wireframe_color();
         assert_ne!(dark_wire, light_wire);
     }
 }

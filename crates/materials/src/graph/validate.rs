@@ -80,14 +80,14 @@ impl MaterialGraph {
                 .and_then(|n| n.find_pin(&conn.to_pin))
                 .map(|p| p.pin_type);
 
-            if let (Some(ft), Some(tt)) = (from_type, to_type) {
-                if !types_compatible(ft, tt) {
-                    errors.push(GraphError::TypeMismatch {
-                        connection_index: i,
-                        from_type: ft,
-                        to_type: tt,
-                    });
-                }
+            if let (Some(ft), Some(tt)) = (from_type, to_type)
+                && !types_compatible(ft, tt)
+            {
+                errors.push(GraphError::TypeMismatch {
+                    connection_index: i,
+                    from_type: ft,
+                    to_type: tt,
+                });
             }
         }
 
@@ -137,12 +137,12 @@ impl MaterialGraph {
         while let Some(node_id) = queue.pop_front() {
             visited += 1;
             for conn in &self.connections {
-                if conn.from_node == node_id {
-                    if let Some(deg) = in_degree.get_mut(&conn.to_node) {
-                        *deg -= 1;
-                        if *deg == 0 {
-                            queue.push_back(conn.to_node);
-                        }
+                if conn.from_node == node_id
+                    && let Some(deg) = in_degree.get_mut(&conn.to_node)
+                {
+                    *deg -= 1;
+                    if *deg == 0 {
+                        queue.push_back(conn.to_node);
                     }
                 }
             }
@@ -171,12 +171,12 @@ impl MaterialGraph {
         while let Some(node_id) = queue.pop_front() {
             sorted.push(node_id);
             for conn in &self.connections {
-                if conn.from_node == node_id {
-                    if let Some(deg) = in_degree.get_mut(&conn.to_node) {
-                        *deg -= 1;
-                        if *deg == 0 {
-                            queue.push_back(conn.to_node);
-                        }
+                if conn.from_node == node_id
+                    && let Some(deg) = in_degree.get_mut(&conn.to_node)
+                {
+                    *deg -= 1;
+                    if *deg == 0 {
+                        queue.push_back(conn.to_node);
                     }
                 }
             }

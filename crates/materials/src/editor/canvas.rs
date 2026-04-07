@@ -358,12 +358,11 @@ pub fn show(ui: &mut Ui, state: &mut NodeEditorState) {
         });
     }
 
-    if state.dragging_wire.is_some() {
-        if let Some(mouse) = ui.input(|i| i.pointer.hover_pos()) {
-            if let Some(ref mut dw) = state.dragging_wire {
-                dw.current_pos = screen_to_graph(mouse, state.camera_offset, state.zoom, canvas_min);
-            }
-        }
+    if state.dragging_wire.is_some()
+        && let Some(mouse) = ui.input(|i| i.pointer.hover_pos())
+        && let Some(ref mut dw) = state.dragging_wire
+    {
+        dw.current_pos = screen_to_graph(mouse, state.camera_offset, state.zoom, canvas_min);
     }
 
     // Complete connection

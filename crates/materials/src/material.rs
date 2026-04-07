@@ -47,20 +47,15 @@ impl Default for EmissiveConfig {
 }
 
 /// How alpha (transparency) is handled.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub enum AlphaMode {
     /// Fully opaque -- alpha channel is ignored.
+    #[default]
     Opaque,
     /// Alpha-tested with the given cutoff threshold.
     Mask(f32),
     /// Alpha-blended transparency.
     Blend,
-}
-
-impl Default for AlphaMode {
-    fn default() -> Self {
-        Self::Opaque
-    }
 }
 
 // ─────────────────────────────────────────────────────────────────────

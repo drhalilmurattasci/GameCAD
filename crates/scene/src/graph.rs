@@ -73,10 +73,10 @@ impl SceneGraph {
         // Unlink from parent.
         if let Some(node) = self.nodes.get(&id) {
             let parent_id = node.parent;
-            if let Some(parent_id) = parent_id {
-                if let Some(parent) = self.nodes.get_mut(&parent_id) {
-                    parent.children.retain(|child| *child != id);
-                }
+            if let Some(parent_id) = parent_id
+                && let Some(parent) = self.nodes.get_mut(&parent_id)
+            {
+                parent.children.retain(|child| *child != id);
             }
         }
 
@@ -109,10 +109,10 @@ impl SceneGraph {
         // Remove from old parent.
         if let Some(node) = self.nodes.get(&node_id) {
             let old_parent = node.parent;
-            if let Some(old_parent_id) = old_parent {
-                if let Some(parent) = self.nodes.get_mut(&old_parent_id) {
-                    parent.children.retain(|c| *c != node_id);
-                }
+            if let Some(old_parent_id) = old_parent
+                && let Some(parent) = self.nodes.get_mut(&old_parent_id)
+            {
+                parent.children.retain(|c| *c != node_id);
             }
         }
 

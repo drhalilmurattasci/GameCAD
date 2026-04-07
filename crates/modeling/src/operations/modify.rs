@@ -41,11 +41,10 @@ pub fn merge_vertices(mesh: &mut EditMesh, threshold: f32) -> usize {
     }
 
     // Update vertex edge references.
-    for vid in 0..vertex_count {
-        if canonical[vid] != vid {
+    for (vid, &canon) in canonical.iter().enumerate() {
+        if canon != vid {
             // This vertex is being merged away; if the canonical vertex has no edge,
             // take this one's edge.
-            let canon = canonical[vid];
             if mesh.vertices[canon].edge == INVALID_ID {
                 mesh.vertices[canon].edge = mesh.vertices[vid].edge;
             }

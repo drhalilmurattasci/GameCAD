@@ -56,7 +56,6 @@ impl ForgeEditorApp {
         let accent = tc!(self, accent);
         let text_color = tc!(self, text);
         let text_dim = tc!(self, text_dim);
-        let surface = tc!(self, surface);
         let selection_bg = accent.linear_multiply(0.15);
 
         let row_resp = ui.horizontal(|ui| {
@@ -137,8 +136,6 @@ impl ForgeEditorApp {
                 );
             }
 
-            // Suppress unused-variable warnings
-            let _ = surface;
         });
 
         // Outliner context menu on right-click

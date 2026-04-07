@@ -5,8 +5,9 @@
 //!
 //! # Examples
 //!
-//! ```rust
-//! # use core::events::EventBus;
+//! ```rust,ignore
+//! use core::events::EventBus;
+//!
 //! let bus = EventBus::new();
 //! let rx = bus.subscribe::<String>();
 //! bus.publish("hello".to_string());

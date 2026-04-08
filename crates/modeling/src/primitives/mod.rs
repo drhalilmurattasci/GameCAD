@@ -3,6 +3,7 @@
 mod cone;
 mod cube;
 mod cylinder;
+mod icosphere;
 mod plane;
 mod sphere;
 mod torus;
@@ -10,6 +11,7 @@ mod torus;
 pub use cone::generate_cone;
 pub use cube::generate_cube;
 pub use cylinder::generate_cylinder;
+pub use icosphere::generate_icosphere;
 pub use plane::generate_plane;
 pub use sphere::generate_sphere;
 pub use torus::generate_torus;

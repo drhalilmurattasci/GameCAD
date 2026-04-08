@@ -5,10 +5,11 @@
 //! right-click context menu for add / duplicate / delete.
 
 use eframe::egui;
-use egui::{CornerRadius, FontId, Rect, RichText, Stroke, StrokeKind, Vec2};
+use egui::{FontId, RichText};
 
-use crate::app::ForgeEditorApp;
-use crate::types::*;
+use crate::panels::tree_row::{self, TreeRowStyle};
+use crate::state::{EditorLayer, ForgeEditorApp};
+use crate::state::types::*;
 
 impl ForgeEditorApp {
     /// Draw the left-side outliner panel containing the scene tree.
@@ -29,11 +30,25 @@ impl ForgeEditorApp {
                 egui::ScrollArea::vertical()
                     .max_height(ui.available_height() * 0.6)
                     .show(ui, |ui| {
-                        // Flatten the tree for display
                         let tree = self.outliner.clone();
                         let mut flat_idx = 0usize;
+                        let mut toggle_ids = Vec::new();
                         for root in &tree {
-                            self.draw_outliner_node(ui, root, 0, &mut flat_idx);
+                            self.draw_outliner_node(ui, root, 0, &mut flat_idx, &mut toggle_ids);
+                        }
+                        // Apply expand/collapse toggles back to the real outliner
+                        if !toggle_ids.is_empty() {
+                            fn apply_toggles(node: &mut OutlinerNode, ids: &[forge_core::id::NodeId]) {
+                                if ids.contains(&node.id) {
+                                    node.expanded = !node.expanded;
+                                }
+                                for child in &mut node.children {
+                                    apply_toggles(child, ids);
+                                }
+                            }
+                            for root in &mut self.outliner {
+                                apply_toggles(root, &toggle_ids);
+                            }
                         }
                     });
 
@@ -48,103 +63,97 @@ impl ForgeEditorApp {
                         .color(tc!(self, text))
                         .strong(),
                 );
-                ui.add_space(4.0);
+                ui.separator();
 
-                let active = self.active_layer;
-                let mut new_active = active;
-                for (i, layer) in self.layers.iter_mut().enumerate() {
-                    ui.horizontal(|ui| {
-                        // Color swatch
-                        let (swatch_rect, _) = ui.allocate_exact_size(Vec2::new(12.0, 12.0), egui::Sense::hover());
-                        ui.painter().rect_filled(swatch_rect, 2, layer.color);
-                        if i == active {
-                            ui.painter().rect_stroke(swatch_rect, 2, Stroke::new(2.0, egui::Color32::from_rgb(0x4e, 0xff, 0x93)), StrokeKind::Outside);
-                        }
+                let active_path = self.active_layer.clone();
+                let mut new_active: Option<Vec<usize>> = None;
+                let style = TreeRowStyle {
+                    accent: tc!(self, accent),
+                    text: tc!(self, text),
+                    text_dim: tc!(self, text_dim),
+                    indent_px: 18.0,
+                };
 
-                        // Visibility eye
-                        let vis_icon = if layer.visible { "\u{1F441}" } else { "\u{2014}" };
-                        if ui.small_button(vis_icon).on_hover_text("Toggle visibility").clicked() {
-                            layer.visible = !layer.visible;
-                        }
-
-                        // Lock
-                        let lock_icon = if layer.locked { "\u{1F512}" } else { "\u{1F513}" };
-                        if ui.small_button(lock_icon).on_hover_text("Toggle lock").clicked() {
-                            layer.locked = !layer.locked;
-                        }
-
-                        // Name (clickable to set active)
-                        let label_color = if i == active { tc!(self, accent) } else { tc!(self, text) };
-                        if ui.add(egui::Label::new(
-                            RichText::new(&layer.name)
-                                .font(FontId::proportional(12.0))
-                                .color(label_color),
-                        ).sense(egui::Sense::click())).clicked() {
-                            new_active = i;
+                let mut delete_path: Option<Vec<usize>> = None;
+                egui::ScrollArea::vertical()
+                    .id_salt("layers_scroll")
+                    .show(ui, |ui| {
+                        for (i, layer) in self.layers.iter_mut().enumerate() {
+                            let path = vec![i];
+                            let deleted = Self::draw_layer_entry(
+                                ui, layer, &path, &active_path, 0,
+                                &style, &mut new_active,
+                            );
+                            if deleted {
+                                delete_path = Some(path);
+                            }
                         }
                     });
+                if let Some(new_path) = new_active {
+                    self.active_layer = new_path;
                 }
-                self.active_layer = new_active;
+
+                // Handle layer deletion
+                if let Some(del_path) = delete_path {
+                    if del_path.len() == 1 && self.layers.len() > 1 {
+                        let del = del_path[0];
+                        let removed = self.layers.remove(del);
+                        self.console_log.push(LogEntry {
+                            level: LogLevel::Info,
+                            message: format!("Deleted layer '{}'", removed.name),
+                        });
+                        if self.active_layer.first().is_some_and(|&a| a >= self.layers.len()) {
+                            self.active_layer = vec![self.layers.len() - 1];
+                        }
+                    }
+                }
             });
     }
 
     /// Recursively draw a single outliner node and its children.
+    ///
+    /// `toggle_ids` collects NodeIds whose `expanded` flag should be flipped
+    /// after drawing (since we draw from an immutable clone).
     pub(crate) fn draw_outliner_node(
         &mut self,
         ui: &mut egui::Ui,
         node: &OutlinerNode,
         depth: usize,
         flat_idx: &mut usize,
+        toggle_ids: &mut Vec<forge_core::id::NodeId>,
     ) {
         let idx = *flat_idx;
         *flat_idx += 1;
         let selected = self.selected_entities.contains(&idx);
         let is_primary = idx == self.selected_entity;
-        let indent = depth as f32 * 16.0;
         let node_name = node.name.clone();
+        let has_children = !node.children.is_empty();
 
-        // Capture theme colors before closure
-        let accent = tc!(self, accent);
-        let text_color = tc!(self, text);
-        let text_dim = tc!(self, text_dim);
-        let selection_bg = accent.linear_multiply(0.15);
+        let style = TreeRowStyle {
+            accent: tc!(self, accent),
+            text: tc!(self, text),
+            text_dim: tc!(self, text_dim),
+            indent_px: 16.0,
+        };
 
         let row_resp = ui.horizontal(|ui| {
-            // Draw highlighted background for selected rows
-            if selected {
-                let row_rect = Rect::from_min_size(
-                    ui.cursor().min,
-                    Vec2::new(ui.available_width(), 20.0),
-                );
-                ui.painter().rect_filled(
-                    row_rect,
-                    CornerRadius::same(2),
-                    if is_primary {
-                        selection_bg
-                    } else {
-                        accent.linear_multiply(0.08)
-                    },
-                );
+            tree_row::draw_row_background(ui, selected, is_primary, &style);
+            tree_row::draw_indent(ui, depth, &style);
+
+            if tree_row::draw_expand_toggle(ui, has_children, node.expanded, &style) {
+                toggle_ids.push(node.id);
             }
 
-            ui.add_space(indent + 4.0);
-            let icon_text = RichText::new(node.icon)
-                .font(FontId::proportional(13.0))
-                .color(if selected { accent } else { text_dim });
-            ui.label(icon_text);
-            let name_text = RichText::new(&node.name)
-                .font(FontId::proportional(12.0))
-                .color(if selected { accent } else { text_color });
-            let resp = ui.add(egui::Button::new(name_text).frame(false));
+            tree_row::draw_icon_label(ui, node.icon, selected, &style);
+            let resp = tree_row::draw_name_button(ui, &node.name, selected, &style);
+
             let modifiers = ui.input(|i| i.modifiers);
             if resp.clicked() {
                 if modifiers.ctrl {
-                    // Ctrl+click: toggle in multi-selection
                     if let Some(pos_in_vec) =
                         self.selected_entities.iter().position(|&e| e == idx)
                     {
                         self.selected_entities.remove(pos_in_vec);
-                        // Update primary to first in selection or 0
                         self.selected_entity =
                             self.selected_entities.first().copied().unwrap_or(0);
                     } else {
@@ -156,7 +165,6 @@ impl ForgeEditorApp {
                         message: format!("Toggle select: {}", node.name),
                     });
                 } else if modifiers.shift {
-                    // Shift+click: range select from primary to clicked
                     let start = self.selected_entity.min(idx);
                     let end = self.selected_entity.max(idx);
                     self.selected_entities.clear();
@@ -168,7 +176,6 @@ impl ForgeEditorApp {
                         message: format!("Range select to: {}", node.name),
                     });
                 } else {
-                    // Single click: replace selection
                     self.selected_entity = idx;
                     self.selected_entities = vec![idx];
                     self.console_log.push(LogEntry {
@@ -177,16 +184,6 @@ impl ForgeEditorApp {
                     });
                 }
             }
-            if selected {
-                let r = resp.rect;
-                ui.painter().rect_stroke(
-                    r.expand(1.0),
-                    CornerRadius::same(3),
-                    Stroke::new(1.0, accent.linear_multiply(0.4)),
-                    StrokeKind::Outside,
-                );
-            }
-
         });
 
         // Outliner context menu on right-click
@@ -254,8 +251,101 @@ impl ForgeEditorApp {
             }
         });
 
-        for child in &node.children {
-            self.draw_outliner_node(ui, child, depth + 1, flat_idx);
+        // Only draw children when expanded
+        if node.expanded {
+            for child in &node.children {
+                self.draw_outliner_node(ui, child, depth + 1, flat_idx, toggle_ids);
+            }
+        } else {
+            // Still need to advance flat_idx past collapsed children
+            fn count_descendants(n: &OutlinerNode) -> usize {
+                let mut c = n.children.len();
+                for child in &n.children { c += count_descendants(child); }
+                c
+            }
+            *flat_idx += count_descendants(node);
         }
+    }
+
+    /// Draw a single layer row in outliner tree style.
+    /// Returns `true` if the delete button was clicked for this layer.
+    fn draw_layer_entry(
+        ui: &mut egui::Ui,
+        layer: &mut EditorLayer,
+        path: &[usize],
+        active_path: &[usize],
+        depth: usize,
+        style: &TreeRowStyle,
+        new_active: &mut Option<Vec<usize>>,
+    ) -> bool {
+        let is_active = path == active_path;
+        let has_children = !layer.children.is_empty();
+        let mut deleted = false;
+
+        let row_resp = ui.horizontal(|ui| {
+            tree_row::draw_row_background(ui, is_active, true, style);
+            tree_row::draw_indent(ui, depth, style);
+
+            if tree_row::draw_expand_toggle(ui, has_children, layer.expanded, style) {
+                layer.expanded = !layer.expanded;
+            }
+
+            tree_row::draw_color_swatch(ui, layer.color, is_active, style);
+
+            let name_resp = tree_row::draw_name_button(ui, &layer.name, is_active, style);
+            if name_resp.clicked() {
+                *new_active = Some(path.to_vec());
+            }
+
+            tree_row::draw_badge(ui, layer.total_entity_count(), style);
+            tree_row::draw_toggle_button(ui, "\u{1F441}", "\u{2014}", &mut layer.visible, "Toggle visibility");
+            tree_row::draw_toggle_button(ui, "\u{1F512}", "\u{1F513}", &mut layer.locked, "Toggle lock");
+
+            // Delete button
+            let del_text = RichText::new("\u{2716}").font(FontId::proportional(10.0)).color(style.text_dim);
+            if ui.add(egui::Button::new(del_text).frame(false))
+                .on_hover_text("Delete layer")
+                .clicked()
+            {
+                deleted = true;
+            }
+        });
+
+        // Right-click context menu
+        row_resp.response.context_menu(|ui| {
+            if ui.button("Delete Layer").clicked() {
+                deleted = true;
+                ui.close_menu();
+            }
+            if ui.button("Add Sublayer").clicked() {
+                let child_color = layer.color.linear_multiply(0.7);
+                let n = layer.children.len();
+                layer.add_sublayer(EditorLayer::new(
+                    format!("{} Sub-{}", layer.name, n + 1),
+                    child_color,
+                ));
+                layer.expanded = true;
+                ui.close_menu();
+            }
+        });
+
+        // Draw sublayers only when expanded
+        let mut child_delete_idx: Option<usize> = None;
+        if layer.expanded {
+            for (ci, sublayer) in layer.children.iter_mut().enumerate() {
+                let mut child_path = path.to_vec();
+                child_path.push(ci);
+                if Self::draw_layer_entry(
+                    ui, sublayer, &child_path, active_path, depth + 1,
+                    style, new_active,
+                ) {
+                    child_delete_idx = Some(ci);
+                }
+            }
+        }
+        if let Some(ci) = child_delete_idx {
+            layer.children.remove(ci);
+        }
+        deleted
     }
 }

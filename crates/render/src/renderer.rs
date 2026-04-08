@@ -106,12 +106,11 @@ impl Renderer {
     /// `meshes` is a slice of GPU meshes to draw in the main pass.
     pub fn render_frame(
         &mut self,
-        gpu: &GpuContext,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
         target_view: &wgpu::TextureView,
         meshes: &[&GpuMesh],
     ) {
-        let device = &gpu.device;
-        let queue = &gpu.queue;
 
         let mut encoder =
             device.create_command_encoder(&wgpu::CommandEncoderDescriptor {

@@ -8,8 +8,8 @@
 use egui::{Pos2, Rect};
 use glam::Vec3;
 
-use crate::app::ForgeEditorApp;
-use crate::types::*;
+use crate::state::ForgeEditorApp;
+use crate::state::types::*;
 
 impl ForgeEditorApp {
     /// Handle a left-click in the viewport by picking the closest entity.
@@ -28,6 +28,9 @@ impl ForgeEditorApp {
         let mut hits: Vec<(usize, f32)> = Vec::new(); // (entity_idx, distance)
 
         for idx in 1..names.len().min(self.transforms.len()) {
+            if self.is_entity_hidden(idx) || self.is_entity_locked(idx) {
+                continue;
+            }
             let world_pos = Vec3::new(
                 self.transforms[idx][0],
                 self.transforms[idx][1],
@@ -103,6 +106,9 @@ impl ForgeEditorApp {
 
         self.selected_entities.clear();
         for idx in 1..names.len().min(self.transforms.len()) {
+            if self.is_entity_hidden(idx) || self.is_entity_locked(idx) {
+                continue;
+            }
             let world_pos = Vec3::new(
                 self.transforms[idx][0],
                 self.transforms[idx][1],

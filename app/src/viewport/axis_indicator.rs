@@ -6,7 +6,7 @@
 use egui::{Color32, FontId, Pos2, Rect, Stroke};
 use glam::Mat4;
 
-use crate::app::ForgeEditorApp;
+use crate::state::ForgeEditorApp;
 
 impl ForgeEditorApp {
     /// Draw the orientation axis gizmo in the bottom-left corner of `rect`.

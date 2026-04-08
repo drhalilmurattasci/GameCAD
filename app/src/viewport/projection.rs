@@ -7,7 +7,7 @@
 use egui::{Pos2, Rect, Stroke};
 use glam::{Mat4, Vec3, Vec4};
 
-use crate::app::ForgeEditorApp;
+use crate::state::ForgeEditorApp;
 
 impl ForgeEditorApp {
     /// Project a world-space point to screen-space, returning `None` if behind the camera.

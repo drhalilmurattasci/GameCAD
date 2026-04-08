@@ -7,7 +7,7 @@
 use eframe::egui;
 use egui::{Color32, CornerRadius, FontId, RichText, Sense, Vec2};
 
-use crate::app::ForgeEditorApp;
+use crate::state::ForgeEditorApp;
 
 impl ForgeEditorApp {
     /// Draw the right-side inspector panel with entity properties.
@@ -33,13 +33,22 @@ impl ForgeEditorApp {
                     return;
                 }
 
+                let locked = self.is_entity_locked(sel);
                 ui.label(
                     RichText::new(&entity_names[sel])
                         .font(FontId::proportional(14.0))
                         .color(tc!(self, accent))
                         .strong(),
                 );
+                if locked {
+                    ui.label(
+                        RichText::new("\u{1F512} Locked")
+                            .font(FontId::proportional(10.0))
+                            .color(tc!(self, text_dim)),
+                    );
+                }
                 ui.add_space(8.0);
+                ui.set_enabled(!locked);
 
                 // Transform section
                 egui::CollapsingHeader::new(

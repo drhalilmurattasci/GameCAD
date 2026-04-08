@@ -2,7 +2,7 @@
 //!
 //! Enums for tabs, tool modes, render styles, and structs for the outliner
 //! tree, agent tasks, and console log entries live here so they can be
-//! imported across the crate with a single `use crate::types::*`.
+//! imported across the crate with a single `use crate::state::types::*`.
 
 use egui::Color32;
 
@@ -171,8 +171,10 @@ impl BottomTab {
 /// A node in the outliner scene-graph tree.
 #[derive(Clone)]
 pub(crate) struct OutlinerNode {
+    pub(crate) id: forge_core::id::NodeId,
     pub(crate) name: String,
     pub(crate) icon: &'static str,
+    pub(crate) expanded: bool,
     pub(crate) children: Vec<OutlinerNode>,
 }
 
@@ -251,5 +253,140 @@ impl LogLevel {
             LogLevel::Warn => "[WARN]",
             LogLevel::Error => "[ERR ]",
         }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Tests
+// ─────────────────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn main_tab_all_contains_all_variants() {
+        assert_eq!(MainTab::ALL.len(), 7);
+        assert_eq!(MainTab::ALL[0], MainTab::MapEditor);
+        assert_eq!(MainTab::ALL[6], MainTab::Physics);
+    }
+
+    #[test]
+    fn main_tab_labels_non_empty() {
+        for tab in &MainTab::ALL {
+            assert!(!tab.label().is_empty(), "Tab {:?} has empty label", tab);
+        }
+    }
+
+    #[test]
+    fn tool_mode_labels_and_shortcuts() {
+        let tools = [ToolMode::Select, ToolMode::Move, ToolMode::Rotate, ToolMode::Scale];
+        for tool in &tools {
+            assert!(!tool.label().is_empty());
+            assert!(!tool.shortcut().is_empty());
+        }
+        assert_eq!(ToolMode::Select.shortcut(), "Q");
+        assert_eq!(ToolMode::Move.shortcut(), "M");
+        assert_eq!(ToolMode::Rotate.shortcut(), "E");
+        assert_eq!(ToolMode::Scale.shortcut(), "R");
+    }
+
+    #[test]
+    fn render_style_all_contains_8_variants() {
+        assert_eq!(RenderStyle::ALL.len(), 8);
+    }
+
+    #[test]
+    fn render_style_next_cycles() {
+        let first = RenderStyle::Shaded;
+        assert_eq!(first.next(), RenderStyle::Wireframe);
+        assert_eq!(RenderStyle::Clay.next(), RenderStyle::Shaded); // wraps
+    }
+
+    #[test]
+    fn render_style_next_full_cycle() {
+        let mut style = RenderStyle::Shaded;
+        for _ in 0..8 {
+            style = style.next();
+        }
+        assert_eq!(style, RenderStyle::Shaded); // full cycle
+    }
+
+    #[test]
+    fn render_style_labels_non_empty() {
+        for rs in &RenderStyle::ALL {
+            assert!(!rs.label().is_empty());
+        }
+    }
+
+    #[test]
+    fn bottom_tab_all_contains_4() {
+        assert_eq!(BottomTab::ALL.len(), 4);
+    }
+
+    #[test]
+    fn bottom_tab_labels_non_empty() {
+        for tab in &BottomTab::ALL {
+            assert!(!tab.label().is_empty());
+        }
+    }
+
+    #[test]
+    fn task_status_label_and_color() {
+        let statuses = [TaskStatus::Queued, TaskStatus::Running, TaskStatus::Complete, TaskStatus::Failed];
+        for status in &statuses {
+            assert!(!status.label().is_empty());
+            // Color should not be transparent (alpha > 0)
+            let c = status.color();
+            assert_ne!(c, Color32::TRANSPARENT);
+        }
+    }
+
+    #[test]
+    fn log_level_prefix_format() {
+        assert_eq!(LogLevel::Info.prefix(), "[INFO]");
+        assert_eq!(LogLevel::Warn.prefix(), "[WARN]");
+        assert_eq!(LogLevel::Error.prefix(), "[ERR ]");
+    }
+
+    #[test]
+    fn log_level_colors_distinct() {
+        let info_c = LogLevel::Info.color();
+        let warn_c = LogLevel::Warn.color();
+        let err_c = LogLevel::Error.color();
+        assert_ne!(info_c, warn_c);
+        assert_ne!(warn_c, err_c);
+        assert_ne!(info_c, err_c);
+    }
+
+    #[test]
+    fn outliner_node_clone() {
+        let node = OutlinerNode {
+            id: forge_core::id::NodeId::new(),
+            name: "Test".into(),
+            icon: "\u{25A6}",
+            expanded: true,
+            children: vec![OutlinerNode {
+                id: forge_core::id::NodeId::new(),
+                name: "Child".into(),
+                icon: "\u{25CB}",
+                expanded: true,
+                children: vec![],
+            }],
+        };
+        let cloned = node.clone();
+        assert_eq!(cloned.name, "Test");
+        assert_eq!(cloned.children.len(), 1);
+        assert_eq!(cloned.children[0].name, "Child");
+    }
+
+    #[test]
+    fn agent_task_progress_bounds() {
+        let task = AgentTask {
+            name: "Test".into(),
+            progress: 0.5,
+            status: TaskStatus::Running,
+        };
+        assert!(task.progress >= 0.0 && task.progress <= 1.0);
     }
 }

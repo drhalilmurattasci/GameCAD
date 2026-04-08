@@ -9,8 +9,8 @@ use egui::{
     Color32, CornerRadius, FontId, Pos2, Rect, RichText, Sense, Stroke, StrokeKind, Vec2,
 };
 
-use crate::app::ForgeEditorApp;
-use crate::types::*;
+use crate::state::ForgeEditorApp;
+use crate::state::types::*;
 
 impl ForgeEditorApp {
     /// Draw the bottom panel with tab strip and active tab content.
@@ -64,21 +64,29 @@ impl ForgeEditorApp {
 
     /// Draw the content browser grid with material swatches.
     pub(crate) fn draw_content_browser(&mut self, ui: &mut egui::Ui) {
-        let asset_names = [
-            ("Cobblestone", Color32::from_rgb(0x7f, 0x6b, 0x5a)),
-            ("Grass", Color32::from_rgb(0x4a, 0x8c, 0x3f)),
-            ("Metal", Color32::from_rgb(0x88, 0x8c, 0x93)),
-            ("Wood", Color32::from_rgb(0x8b, 0x6b, 0x4a)),
-            ("Brick", Color32::from_rgb(0xa0, 0x52, 0x3a)),
-            ("Sand", Color32::from_rgb(0xd2, 0xb4, 0x8c)),
-            ("Water", Color32::from_rgb(0x3a, 0x7c, 0xb8)),
-            ("Lava", Color32::from_rgb(0xcc, 0x44, 0x10)),
-            ("Ice", Color32::from_rgb(0x8e, 0xce, 0xe8)),
-            ("Marble", Color32::from_rgb(0xe0, 0xd8, 0xd0)),
-        ];
+        use forge_materials::material::ColorOrTexture;
+
+        // Collect materials into a Vec to avoid borrow conflict
+        let mat_entries: Vec<(String, Color32)> = self
+            .material_library
+            .list()
+            .map(|(_id, mat)| {
+                let color = match &mat.albedo {
+                    ColorOrTexture::Color(c) => Color32::from_rgba_premultiplied(
+                        (c.r * 255.0) as u8,
+                        (c.g * 255.0) as u8,
+                        (c.b * 255.0) as u8,
+                        (c.a * 255.0) as u8,
+                    ),
+                    ColorOrTexture::Texture(_) => Color32::GRAY,
+                };
+                (mat.name.clone(), color)
+            })
+            .collect();
+
         egui::ScrollArea::horizontal().show(ui, |ui| {
             ui.horizontal_wrapped(|ui| {
-                for (name, color) in &asset_names {
+                for (name, color) in &mat_entries {
                     ui.vertical(|ui| {
                         let (rect, resp) =
                             ui.allocate_exact_size(Vec2::new(64.0, 64.0), Sense::click());
@@ -98,11 +106,11 @@ impl ForgeEditorApp {
                         if resp.clicked() {
                             self.console_log.push(LogEntry {
                                 level: LogLevel::Info,
-                                message: format!("Selected asset: {}", name),
+                                message: format!("Selected material: {}", name),
                             });
                         }
                         ui.label(
-                            RichText::new(*name)
+                            RichText::new(name)
                                 .font(FontId::proportional(10.0))
                                 .color(tc!(self, text_dim)),
                         );

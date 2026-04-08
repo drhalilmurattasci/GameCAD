@@ -12,8 +12,8 @@ use eframe::egui;
 use egui::{PointerButton, Pos2, Response};
 use glam::Vec3;
 
-use crate::app::ForgeEditorApp;
-use crate::types::*;
+use crate::state::ForgeEditorApp;
+use crate::state::types::*;
 
 impl ForgeEditorApp {
     /// Handle all mouse-based camera controls: orbit, pan, zoom, Alt+drag,
@@ -134,7 +134,8 @@ impl ForgeEditorApp {
         let tool_active = self.tool_mode != ToolMode::Select
             && self.selected_entity > 0
             && self.selected_entity < self.transforms.len()
-            && !modifiers.alt;
+            && !modifiers.alt
+            && !self.is_entity_locked(self.selected_entity);
 
         if tool_active && response.dragged_by(PointerButton::Primary) {
             let delta = response.drag_delta();
@@ -206,14 +207,24 @@ impl ForgeEditorApp {
             let names = self.flatten_outliner_names();
             let ent_name = names.get(sel).cloned().unwrap_or_default();
             // Snap to grid on release — only snap axes that were moved
-            if self.settings.snap.enabled && self.tool_mode == ToolMode::Move {
-                let s = self.settings.snap.size;
-                // Always snap X and Z (moved in all modes)
-                self.transforms[sel][0] = (self.transforms[sel][0] / s).round() * s;
-                self.transforms[sel][2] = (self.transforms[sel][2] / s).round() * s;
-                // Only snap Y if Shift or Ctrl was held (Y was intentionally moved)
-                if modifiers.shift || modifiers.ctrl {
-                    self.transforms[sel][1] = (self.transforms[sel][1] / s).round() * s;
+            if self.settings.snap.enabled {
+                if self.tool_mode == ToolMode::Move {
+                    let s = self.settings.snap.size;
+                    self.transforms[sel][0] = (self.transforms[sel][0] / s).round() * s;
+                    self.transforms[sel][2] = (self.transforms[sel][2] / s).round() * s;
+                    if modifiers.shift || modifiers.ctrl {
+                        self.transforms[sel][1] = (self.transforms[sel][1] / s).round() * s;
+                    }
+                } else if self.tool_mode == ToolMode::Rotate {
+                    let r = self.settings.snap.rotation_degrees;
+                    self.transforms[sel][3] = (self.transforms[sel][3] / r).round() * r;
+                    self.transforms[sel][4] = (self.transforms[sel][4] / r).round() * r;
+                    self.transforms[sel][5] = (self.transforms[sel][5] / r).round() * r;
+                } else if self.tool_mode == ToolMode::Scale {
+                    let si = self.settings.snap.scale_increment;
+                    self.transforms[sel][6] = (self.transforms[sel][6] / si).round() * si;
+                    self.transforms[sel][7] = (self.transforms[sel][7] / si).round() * si;
+                    self.transforms[sel][8] = (self.transforms[sel][8] / si).round() * si;
                 }
             }
             // Log final position/rotation/scale once

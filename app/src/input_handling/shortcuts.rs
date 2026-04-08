@@ -7,8 +7,8 @@
 use eframe::egui;
 use glam::Vec3;
 
-use crate::app::ForgeEditorApp;
-use crate::types::*;
+use crate::state::ForgeEditorApp;
+use crate::state::types::*;
 
 impl ForgeEditorApp {
     /// Process all global keyboard shortcuts.
@@ -102,8 +102,11 @@ impl ForgeEditorApp {
         if ctx.input(|i| {
             i.key_pressed(egui::Key::L) && !i.modifiers.command && !i.modifiers.shift
         }) {
-            self.active_layer = (self.active_layer + 1) % self.layers.len();
-            let name = self.layers[self.active_layer].name.clone();
+            // Cycle through top-level layers
+            let current = self.active_layer.first().copied().unwrap_or(0);
+            let next = (current + 1) % self.layers.len();
+            self.active_layer = vec![next];
+            let name = self.layers[next].name.clone();
             self.console_log.push(LogEntry {
                 level: LogLevel::Info,
                 message: format!("Active layer: {}", name),
@@ -123,17 +126,43 @@ impl ForgeEditorApp {
         // Undo: Ctrl+Z
         if ctx.input(|i| i.key_pressed(egui::Key::Z) && i.modifiers.command && !i.modifiers.shift)
         {
-            self.console_log.push(LogEntry {
-                level: LogLevel::Info,
-                message: "Undo".into(),
-            });
+            let mut cmd_ctx = forge_core::commands::CommandContext::new(
+                &mut self.world, &self.event_bus,
+            );
+            match self.command_history.undo(&mut cmd_ctx) {
+                Ok(true) => self.console_log.push(LogEntry {
+                    level: LogLevel::Info,
+                    message: "Undo".into(),
+                }),
+                Ok(false) => self.console_log.push(LogEntry {
+                    level: LogLevel::Warn,
+                    message: "Nothing to undo".into(),
+                }),
+                Err(e) => self.console_log.push(LogEntry {
+                    level: LogLevel::Error,
+                    message: format!("Undo failed: {e}"),
+                }),
+            }
         }
         // Redo: Ctrl+Shift+Z
         if ctx.input(|i| i.key_pressed(egui::Key::Z) && i.modifiers.command && i.modifiers.shift) {
-            self.console_log.push(LogEntry {
-                level: LogLevel::Info,
-                message: "Redo".into(),
-            });
+            let mut cmd_ctx = forge_core::commands::CommandContext::new(
+                &mut self.world, &self.event_bus,
+            );
+            match self.command_history.redo(&mut cmd_ctx) {
+                Ok(true) => self.console_log.push(LogEntry {
+                    level: LogLevel::Info,
+                    message: "Redo".into(),
+                }),
+                Ok(false) => self.console_log.push(LogEntry {
+                    level: LogLevel::Warn,
+                    message: "Nothing to redo".into(),
+                }),
+                Err(e) => self.console_log.push(LogEntry {
+                    level: LogLevel::Error,
+                    message: format!("Redo failed: {e}"),
+                }),
+            }
         }
         // F: Focus selection
         if ctx.input(|i| i.key_pressed(egui::Key::F) && i.modifiers == egui::Modifiers::NONE) {
@@ -155,9 +184,17 @@ impl ForgeEditorApp {
         {
             self.select_all();
         }
-        // Ctrl+D: Duplicate
+        // Ctrl+D: Duplicate (skip if any selected entity is locked)
         if ctx.input(|i| i.key_pressed(egui::Key::D) && i.modifiers.command) {
-            self.duplicate_selected();
+            let any_locked = self.selected_entities.iter().any(|&i| self.is_entity_locked(i));
+            if !any_locked {
+                self.duplicate_selected();
+            } else {
+                self.console_log.push(LogEntry {
+                    level: LogLevel::Warn,
+                    message: "Cannot duplicate: selection contains locked entities".into(),
+                });
+            }
         }
         // Ctrl+G: Group
         if ctx.input(|i| i.key_pressed(egui::Key::G) && i.modifiers.command) {
@@ -166,9 +203,17 @@ impl ForgeEditorApp {
                 message: "Group selected entities".into(),
             });
         }
-        // Delete: Delete selected
+        // Delete: Delete selected (skip if any selected entity is locked)
         if ctx.input(|i| i.key_pressed(egui::Key::Delete)) {
-            self.delete_selected();
+            let any_locked = self.selected_entities.iter().any(|&i| self.is_entity_locked(i));
+            if !any_locked {
+                self.delete_selected();
+            } else {
+                self.console_log.push(LogEntry {
+                    level: LogLevel::Warn,
+                    message: "Cannot delete: selection contains locked entities".into(),
+                });
+            }
         }
     }
 }

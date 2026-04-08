@@ -213,14 +213,19 @@ pub struct LayerDef {
 }
 
 /// Default layers created for every new project.
+/// "Objects" is the default active layer (index 2).
 pub const DEFAULT_LAYERS: &[(&str, [u8; 3])] = &[
     ("Base",        [0x00, 0x00, 0x00]),  // Black
     ("Environment", [0x2e, 0xcc, 0x71]),  // Green
+    ("Objects",     [0xff, 0x8c, 0x00]),  // Orange (default)
     ("Characters",  [0x3e, 0x55, 0xff]),  // Blue
     ("Lights",      [0xff, 0xd7, 0x00]),  // Yellow
     ("Effects",     [0xe9, 0x45, 0x60]),  // Pink
     ("UI",          [0x9b, 0x59, 0xb6]),  // Purple
 ];
+
+/// Index of the "Objects" layer in DEFAULT_LAYERS (default active layer).
+pub const DEFAULT_ACTIVE_LAYER: usize = 2;
 
 // ─────────────────────────────────────────────────────────────────────
 // Working height
@@ -368,9 +373,10 @@ mod tests {
 
     #[test]
     fn default_layers_count() {
-        assert_eq!(DEFAULT_LAYERS.len(), 6);
+        assert_eq!(DEFAULT_LAYERS.len(), 7);
         assert_eq!(DEFAULT_LAYERS[0].0, "Base");
         assert_eq!(DEFAULT_LAYERS[0].1, [0, 0, 0]);
+        assert_eq!(DEFAULT_LAYERS[DEFAULT_ACTIVE_LAYER].0, "Objects");
     }
 
     #[test]

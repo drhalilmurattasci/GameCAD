@@ -10,8 +10,8 @@ use egui::{
     Stroke,
 };
 
-use crate::app::ForgeEditorApp;
-use crate::types::*;
+use crate::state::ForgeEditorApp;
+use crate::state::types::*;
 
 impl ForgeEditorApp {
     /// Draw the command palette overlay and handle input/execution.

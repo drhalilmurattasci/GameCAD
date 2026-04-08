@@ -8,8 +8,8 @@ use eframe::egui;
 use egui::{Color32, CornerRadius, Pos2, Rect, Stroke, Vec2};
 use glam::{Mat4, Vec3};
 
-use crate::app::ForgeEditorApp;
-use crate::types::*;
+use crate::state::ForgeEditorApp;
+use crate::state::types::*;
 
 impl ForgeEditorApp {
     /// Draw tool gizmo indicators at the selected entity's projected position.
@@ -22,6 +22,7 @@ impl ForgeEditorApp {
         if self.selected_entity > 0
             && self.selected_entity < self.transforms.len()
             && self.tool_mode != ToolMode::Select
+            && !self.is_entity_locked(self.selected_entity)
         {
             let sel = self.selected_entity;
             let ent_pos = Vec3::new(

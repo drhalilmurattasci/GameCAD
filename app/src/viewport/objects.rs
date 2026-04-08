@@ -11,8 +11,8 @@ use egui::{
 };
 use glam::{Mat4, Vec3};
 
-use crate::app::ForgeEditorApp;
-use crate::types::*;
+use crate::state::ForgeEditorApp;
+use crate::state::types::*;
 
 impl ForgeEditorApp {
     /// Project and draw all scene entities (meshes, lights, cameras, generics).
@@ -34,12 +34,19 @@ impl ForgeEditorApp {
 
         #[allow(clippy::needless_range_loop)]
         for idx in 1..entity_count {
+            if self.is_entity_hidden(idx) {
+                continue;
+            }
             let pos = Vec3::new(
                 self.transforms[idx][0],
                 self.transforms[idx][1],
                 self.transforms[idx][2],
             );
             let scale = self.transforms[idx][6];
+            let rot_x = self.transforms[idx][3].to_radians();
+            let rot_y = self.transforms[idx][4].to_radians();
+            let rot_z = self.transforms[idx][5].to_radians();
+            let rot_mat = Mat4::from_euler(glam::EulerRot::XYZ, rot_x, rot_y, rot_z);
             let is_selected = self.selected_entities.contains(&idx);
 
             if self.is_mesh_entity(idx) {
@@ -61,7 +68,16 @@ impl ForgeEditorApp {
 
                 if is_sphere {
                     // --- Sphere: icosphere solid faces ---
-                    let faces = Self::generate_icosphere_faces(pos, scale);
+                    // Generate at origin, then rotate + translate
+                    let raw_faces = Self::generate_icosphere_faces(Vec3::ZERO, scale);
+                    let faces: Vec<[Vec3; 3]> = raw_faces
+                        .iter()
+                        .map(|tri| [
+                            pos + rot_mat.transform_vector3(tri[0]),
+                            pos + rot_mat.transform_vector3(tri[1]),
+                            pos + rot_mat.transform_vector3(tri[2]),
+                        ])
+                        .collect();
                     // Collect faces with depth for sorting (back-to-front)
                     let mut face_data: Vec<(f32, [Pos2; 3], Vec3)> = Vec::new();
                     for tri in &faces {
@@ -126,24 +142,27 @@ impl ForgeEditorApp {
                 } else {
                     // --- Cube: 6 filled quad faces ---
                     let s = scale;
-                    let cube_verts = [
-                        pos + Vec3::new(-s, -s, -s), // 0
-                        pos + Vec3::new(s, -s, -s),  // 1
-                        pos + Vec3::new(s, s, -s),   // 2
-                        pos + Vec3::new(-s, s, -s),  // 3
-                        pos + Vec3::new(-s, -s, s),  // 4
-                        pos + Vec3::new(s, -s, s),   // 5
-                        pos + Vec3::new(s, s, s),     // 6
-                        pos + Vec3::new(-s, s, s),   // 7
+                    let offsets = [
+                        Vec3::new(-s, -s, -s), // 0
+                        Vec3::new(s, -s, -s),  // 1
+                        Vec3::new(s, s, -s),   // 2
+                        Vec3::new(-s, s, -s),  // 3
+                        Vec3::new(-s, -s, s),  // 4
+                        Vec3::new(s, -s, s),   // 5
+                        Vec3::new(s, s, s),    // 6
+                        Vec3::new(-s, s, s),   // 7
                     ];
-                    // 6 faces: each is 4 vertex indices + outward normal
+                    let cube_verts = offsets.map(|o| {
+                        pos + rot_mat.transform_vector3(o)
+                    });
+                    // 6 faces: each is 4 vertex indices + outward normal (rotated)
                     let cube_faces: [([usize; 4], Vec3); 6] = [
-                        ([0, 1, 2, 3], Vec3::new(0.0, 0.0, -1.0)), // front (-Z)
-                        ([5, 4, 7, 6], Vec3::new(0.0, 0.0, 1.0)),  // back (+Z)
-                        ([4, 0, 3, 7], Vec3::new(-1.0, 0.0, 0.0)), // left (-X)
-                        ([1, 5, 6, 2], Vec3::new(1.0, 0.0, 0.0)),  // right (+X)
-                        ([3, 2, 6, 7], Vec3::new(0.0, 1.0, 0.0)),  // top (+Y)
-                        ([4, 5, 1, 0], Vec3::new(0.0, -1.0, 0.0)), // bottom (-Y)
+                        ([0, 1, 2, 3], rot_mat.transform_vector3(Vec3::new(0.0, 0.0, -1.0))),
+                        ([5, 4, 7, 6], rot_mat.transform_vector3(Vec3::new(0.0, 0.0, 1.0))),
+                        ([4, 0, 3, 7], rot_mat.transform_vector3(Vec3::new(-1.0, 0.0, 0.0))),
+                        ([1, 5, 6, 2], rot_mat.transform_vector3(Vec3::new(1.0, 0.0, 0.0))),
+                        ([3, 2, 6, 7], rot_mat.transform_vector3(Vec3::new(0.0, 1.0, 0.0))),
+                        ([4, 5, 1, 0], rot_mat.transform_vector3(Vec3::new(0.0, -1.0, 0.0))),
                     ];
 
                     // Collect faces with depth for sorting
@@ -180,9 +199,10 @@ impl ForgeEditorApp {
                         ));
                     }
 
-                    // Label
+                    // Label (above the rotated top)
+                    let label_offset = rot_mat.transform_vector3(Vec3::new(0.0, s + 0.3, 0.0));
                     if let Some(lp) =
-                        Self::project_3d(vp, rect, pos + Vec3::new(0.0, s + 0.3, 0.0))
+                        Self::project_3d(vp, rect, pos + label_offset)
                     {
                         let cube_color = if is_selected {
                             wire_color
@@ -204,42 +224,41 @@ impl ForgeEditorApp {
                     let yellow = Color32::from_rgb(255, 255, 0);
                     let yellow_stroke = Stroke::new(2.0, yellow);
                     if is_sphere {
-                        // Draw 3 great circles (equator + 2 meridians) in yellow
+                        // Draw 3 great circles (equator + 2 meridians) in yellow, rotated
                         let segments = 32;
                         for circle in 0..3 {
-                            for s in 0..segments {
-                                let t0 = s as f32 / segments as f32 * std::f32::consts::TAU;
-                                let t1 = (s + 1) as f32 / segments as f32 * std::f32::consts::TAU;
-                                let (a, b) = match circle {
+                            for s_idx in 0..segments {
+                                let t0 = s_idx as f32 / segments as f32 * std::f32::consts::TAU;
+                                let t1 = (s_idx + 1) as f32 / segments as f32 * std::f32::consts::TAU;
+                                let (off_a, off_b) = match circle {
                                     0 => (
-                                        pos + Vec3::new(t0.cos() * scale, 0.0, t0.sin() * scale),
-                                        pos + Vec3::new(t1.cos() * scale, 0.0, t1.sin() * scale),
+                                        Vec3::new(t0.cos() * scale, 0.0, t0.sin() * scale),
+                                        Vec3::new(t1.cos() * scale, 0.0, t1.sin() * scale),
                                     ),
                                     1 => (
-                                        pos + Vec3::new(t0.cos() * scale, t0.sin() * scale, 0.0),
-                                        pos + Vec3::new(t1.cos() * scale, t1.sin() * scale, 0.0),
+                                        Vec3::new(t0.cos() * scale, t0.sin() * scale, 0.0),
+                                        Vec3::new(t1.cos() * scale, t1.sin() * scale, 0.0),
                                     ),
                                     _ => (
-                                        pos + Vec3::new(0.0, t0.cos() * scale, t0.sin() * scale),
-                                        pos + Vec3::new(0.0, t1.cos() * scale, t1.sin() * scale),
+                                        Vec3::new(0.0, t0.cos() * scale, t0.sin() * scale),
+                                        Vec3::new(0.0, t1.cos() * scale, t1.sin() * scale),
                                     ),
                                 };
+                                let a = pos + rot_mat.transform_vector3(off_a);
+                                let b = pos + rot_mat.transform_vector3(off_b);
                                 Self::draw_line_3d(painter, vp, rect, a, b, yellow_stroke);
                             }
                         }
                     } else {
-                        // Cube: draw all 12 edges in yellow
+                        // Cube: draw all 12 edges in yellow (rotated)
                         let s = scale;
-                        let cv = [
-                            pos + Vec3::new(-s, -s, -s),
-                            pos + Vec3::new(s, -s, -s),
-                            pos + Vec3::new(s, s, -s),
-                            pos + Vec3::new(-s, s, -s),
-                            pos + Vec3::new(-s, -s, s),
-                            pos + Vec3::new(s, -s, s),
-                            pos + Vec3::new(s, s, s),
-                            pos + Vec3::new(-s, s, s),
+                        let sel_offsets = [
+                            Vec3::new(-s, -s, -s), Vec3::new(s, -s, -s),
+                            Vec3::new(s, s, -s),   Vec3::new(-s, s, -s),
+                            Vec3::new(-s, -s, s),  Vec3::new(s, -s, s),
+                            Vec3::new(s, s, s),    Vec3::new(-s, s, s),
                         ];
+                        let cv = sel_offsets.map(|o| pos + rot_mat.transform_vector3(o));
                         let edges = [
                             (0,1),(1,2),(2,3),(3,0),
                             (4,5),(5,6),(6,7),(7,4),

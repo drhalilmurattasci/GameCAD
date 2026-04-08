@@ -5,7 +5,7 @@
 use eframe::egui;
 use egui::{FontId, RichText};
 
-use crate::app::ForgeEditorApp;
+use crate::state::ForgeEditorApp;
 
 impl ForgeEditorApp {
     /// Draw the thin status bar with tool mode, FPS, and entity count.
@@ -19,7 +19,7 @@ impl ForgeEditorApp {
                     let fps = 1.0 / ctx.input(|i| i.predicted_dt).max(0.001);
                     ui.label(
                         RichText::new(format!(
-                            "{} Tool  |  FPS: {:.0}  |  Entities: {}  |  45.2 MB",
+                            "{} Tool  |  FPS: {:.0}  |  Entities: {}",
                             self.tool_mode.label(),
                             fps,
                             entity_count,

@@ -7,8 +7,8 @@
 use eframe::egui;
 use egui::Response;
 
-use crate::app::ForgeEditorApp;
-use crate::types::*;
+use crate::state::ForgeEditorApp;
+use crate::state::types::*;
 
 impl ForgeEditorApp {
     /// Draw the right-click context menu for the viewport.
@@ -22,19 +22,36 @@ impl ForgeEditorApp {
                 }
                 ui.separator();
                 ui.menu_button("Mesh", |ui| {
-                    for (label, name) in [
-                        ("Cube", "New Cube"),
-                        ("Sphere", "New Sphere"),
-                        ("Cylinder", "New Cylinder"),
-                        ("Cone", "New Cone"),
-                        ("Plane", "New Plane"),
-                        ("Torus", "New Torus"),
-                        ("Capsule", "New Capsule"),
-                    ] {
-                        if ui.button(label).clicked() {
-                            self.add_entity(name, "\u{25A6}");
-                            ui.close_menu();
-                        }
+                    use forge_modeling::primitives;
+                    if ui.button("Cube").clicked() {
+                        let mesh = primitives::generate_cube(1.0);
+                        self.add_mesh_entity("New Cube", mesh);
+                        ui.close_menu();
+                    }
+                    if ui.button("Sphere").clicked() {
+                        let mesh = primitives::generate_icosphere(0.5, 3);
+                        self.add_mesh_entity("New Sphere", mesh);
+                        ui.close_menu();
+                    }
+                    if ui.button("Cylinder").clicked() {
+                        let mesh = primitives::generate_cylinder(0.5, 1.0, 32);
+                        self.add_mesh_entity("New Cylinder", mesh);
+                        ui.close_menu();
+                    }
+                    if ui.button("Cone").clicked() {
+                        let mesh = primitives::generate_cone(0.5, 1.0, 32);
+                        self.add_mesh_entity("New Cone", mesh);
+                        ui.close_menu();
+                    }
+                    if ui.button("Plane").clicked() {
+                        let mesh = primitives::generate_plane(1.0, 1.0);
+                        self.add_mesh_entity("New Plane", mesh);
+                        ui.close_menu();
+                    }
+                    if ui.button("Torus").clicked() {
+                        let mesh = primitives::generate_torus(0.5, 0.15, 32, 16);
+                        self.add_mesh_entity("New Torus", mesh);
+                        ui.close_menu();
                     }
                 });
                 ui.menu_button("Light", |ui| {

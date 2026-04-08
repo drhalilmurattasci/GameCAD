@@ -6,7 +6,7 @@
 use egui::{Color32, Rect, Stroke};
 use glam::{Mat4, Vec3};
 
-use crate::app::ForgeEditorApp;
+use crate::state::ForgeEditorApp;
 
 impl ForgeEditorApp {
     /// Draw the ground grid and world-origin axes using 3D line projection.

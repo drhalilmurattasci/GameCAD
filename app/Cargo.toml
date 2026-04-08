@@ -8,8 +8,20 @@ egui = { workspace = true }
 eframe = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
+forge_core = { path = "../crates/core", package = "core" }
+forge_scene = { path = "../crates/scene", package = "scene" }
 forge_viewport = { path = "../crates/viewport", package = "viewport" }
 forge_ui = { path = "../crates/ui", package = "ui" }
+forge_inspector = { path = "../crates/inspector", package = "inspector" }
+forge_modeling = { path = "../crates/modeling", package = "modeling" }
+forge_materials = { path = "../crates/materials", package = "materials" }
+forge_assets = { path = "../crates/assets", package = "assets" }
+forge_render = { path = "../crates/render", package = "render" }
+wgpu = { workspace = true }
+egui-wgpu = { workspace = true }
+bytemuck = { workspace = true }
+pollster = { workspace = true }
 glam = { workspace = true }
 serde = { workspace = true }
 toml = { workspace = true }
+anyhow = { workspace = true }

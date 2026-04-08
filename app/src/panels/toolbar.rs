@@ -8,8 +8,8 @@
 use eframe::egui;
 use egui::{Color32, FontId, RichText, Stroke};
 
-use crate::app::ForgeEditorApp;
-use crate::types::*;
+use crate::state::ForgeEditorApp;
+use crate::state::types::*;
 
 impl ForgeEditorApp {
     /// Draw the top tab bar with workspace tabs and accent underlines.
@@ -135,8 +135,8 @@ impl ForgeEditorApp {
                 );
                 if ui.add(grid_btn).on_hover_text("Toggle grid (G)").clicked() {
                     self.settings.grid.visible = !self.settings.grid.visible;
-                    self.console_log.push(crate::types::LogEntry {
-                        level: crate::types::LogLevel::Info,
+                    self.console_log.push(crate::state::types::LogEntry {
+                        level: crate::state::types::LogLevel::Info,
                         message: format!("Grid {}", if self.settings.grid.visible { "ON" } else { "OFF" }),
                     });
                 }
@@ -161,8 +161,8 @@ impl ForgeEditorApp {
                 );
                 if ui.add(snap_btn).on_hover_text("Toggle snap").clicked() {
                     self.settings.snap.enabled = !self.settings.snap.enabled;
-                    self.console_log.push(crate::types::LogEntry {
-                        level: crate::types::LogLevel::Info,
+                    self.console_log.push(crate::state::types::LogEntry {
+                        level: crate::state::types::LogLevel::Info,
                         message: format!("Snap {}", if self.settings.snap.enabled { "ON" } else { "OFF" }),
                     });
                 }

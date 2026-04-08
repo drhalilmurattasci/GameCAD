@@ -10,3 +10,4 @@ pub(crate) mod inspector;
 pub(crate) mod outliner;
 pub(crate) mod status_bar;
 pub(crate) mod toolbar;
+pub(crate) mod tree_row;

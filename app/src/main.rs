@@ -10,16 +10,12 @@ use eframe::egui;
 #[macro_use]
 mod theme;
 
-mod app;
-mod commands;
-mod entity;
-mod input;
+mod input_handling;
 mod panels;
-pub(crate) mod settings;
-mod types;
+mod state;
 mod viewport;
 
-use app::ForgeEditorApp;
+use state::ForgeEditorApp;
 
 // ---------------------------------------------------------------------------
 // Entry point
@@ -31,9 +27,11 @@ fn main() -> eframe::Result<()> {
     tracing::info!("Starting Forge Editor");
 
     let options = eframe::NativeOptions {
+        renderer: eframe::Renderer::Wgpu,
+        vsync: true,
         viewport: egui::ViewportBuilder::default()
-            .with_title(settings::APP_NAME)
-            .with_inner_size([settings::DEFAULT_WINDOW_WIDTH, settings::DEFAULT_WINDOW_HEIGHT])
+            .with_title(state::settings::APP_NAME)
+            .with_inner_size([state::settings::DEFAULT_WINDOW_WIDTH, state::settings::DEFAULT_WINDOW_HEIGHT])
             .with_min_inner_size([800.0, 500.0]),
         ..Default::default()
     };
@@ -41,6 +39,6 @@ fn main() -> eframe::Result<()> {
     eframe::run_native(
         "Forge Editor",
         options,
-        Box::new(|_cc| Ok(Box::new(ForgeEditorApp::default()))),
+        Box::new(|cc| Ok(Box::new(ForgeEditorApp::new(cc)))),
     )
 }

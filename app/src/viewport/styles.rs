@@ -7,8 +7,8 @@
 use egui::{Color32, Stroke};
 use glam::Vec3;
 
-use crate::app::ForgeEditorApp;
-use crate::types::*;
+use crate::state::ForgeEditorApp;
+use crate::state::types::*;
 
 impl ForgeEditorApp {
     /// Compute the fill colour and stroke for a single polygon face,
